@@ -1,0 +1,25 @@
+dt,AverageTemperature,AverageTemperatureUncertainty,City,Country,Latitude,Longitude
+2000-01-01,20.0,0.8,Sao Paulo,Brazil,23.55S,46.63W
+2010-01-01,21.0,0.8,Sao Paulo,Brazil,23.55S,46.63W
+2019-01-01,22.0,0.7,Sao Paulo,Brazil,23.55S,46.63W
+2020-01-01,23.0,0.7,Sao Paulo,Brazil,23.55S,46.63W
+2021-01-01,24.0,0.7,Sao Paulo,Brazil,23.55S,46.63W
+2022-01-01,25.0,0.7,Sao Paulo,Brazil,23.55S,46.63W
+2000-01-01,10.0,0.9,Paris,France,49.03N,2.45E
+2010-01-01,11.0,0.9,Paris,France,49.03N,2.45E
+2020-01-01,12.0,0.9,Paris,France,49.03N,2.45E
+2022-01-01,13.0,2.4,Paris,France,49.03N,2.45E
+2000-01-01,25.0,1.0,Delhi,India,28.13N,77.27E
+2010-01-01,26.0,1.0,Delhi,India,28.13N,77.27E
+2020-01-01,28.0,1.0,Delhi,India,28.13N,77.27E
+2000-01-01,18.0,0.8,New York,United States,40.99N,74.56W
+2010-01-01,19.0,0.8,New York,United States,40.99N,74.56W
+2020-01-01,20.0,0.8,New York,United States,40.99N,74.56W
+2000-01-01,27.0,1.1,Cairo,Egypt,30.05N,31.25E
+2010-01-01,28.0,1.1,Cairo,Egypt,30.05N,31.25E
+2020-01-01,29.0,1.1,Cairo,Egypt,30.05N,31.25E
+2020-02-01,,1.1,Cairo,Egypt,30.05N,31.25E
+2000-01-01,24.0,0.8,Manaus,Brazil,3.10S,60.02W
+2000-07-01,28.0,0.8,Manaus,Brazil,3.10S,60.02W
+2001-01-01,25.0,0.8,Manaus,Brazil,3.10S,60.02W
+2001-07-01,30.0,0.8,Manaus,Brazil,3.10S,60.02W
