@@ -64,8 +64,7 @@ Docker local:
 
 ```text
 spark-master
-spark-worker-1
-spark-worker-2
+spark-worker escalavel: 1, 2, 3... instancias
 spark-app
 ```
 
@@ -219,6 +218,21 @@ Defesa:
 O processamento foi distribuido, mas nao foi mais rapido nesta rodada. A Spark UI mostrou dois workers vivos e executors em hosts diferentes. O custo de rede, Docker, submit, shuffle, escrita e trechos seriais superou o ganho de CPU.
 ```
 
+
+**Como trocar quantidade localmente:**
+
+```text
+scripts/run_demo.sh 1 -> master + 1 worker
+scripts/run_demo.sh 2 -> master + 2 workers
+scripts/run_demo.sh 3 -> master + 3 workers
+```
+
+Frase pronta:
+
+```text
+No Compose local existe um servico generico spark-worker. O Docker Compose replica esse servico com --scale. O Spark master registra cada replica como worker separado e a UI mostra Alive Workers, cores e memoria totais.
+```
+
 ## Por que mais workers podem nao acelerar
 
 ```text
@@ -234,8 +248,10 @@ WindowExec: No Partition Defined for Window operation
 ## Comandos
 
 ```bash
-scripts/run_demo.sh
-scripts/run_all.sh
+scripts/run_demo.sh 1
+scripts/run_demo.sh 2
+scripts/run_demo.sh 3
+SPARK_WORKER_INSTANCES=3 scripts/run_all.sh
 scripts/run_distributed_master_pc1.sh
 scripts/run_distributed_worker_pc2.sh <IP_DO_PC1>
 scripts/run_distributed_submit_pc1.sh <IP_DO_PC1> sample

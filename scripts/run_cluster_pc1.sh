@@ -3,13 +3,18 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Script de alto nivel para o PC1.
+# Ele nao faz o trabalho pesado diretamente: chama os scripts menores de LAN.
 ACTION="${1:-master}"
 DATA_MODE="${SPARK_DATA_MODE:-sample}"
 
+# Pega o primeiro IP local para o PC2 conseguir conectar no master Spark.
 local_ip() {
   hostname -I | awk '{print $1}'
 }
 
+# Salva IP e modo de dados para os proximos comandos do PC1.
+# Assim "submit" e "benchmark" sabem qual master usar.
 write_cluster_env() {
   local ip="$1"
   local mode="$2"
@@ -21,6 +26,9 @@ EOF
 
 case "$ACTION" in
   master)
+    # 1. Descobre IP do PC1.
+    # 2. Sobe o master Spark em modo LAN.
+    # 3. Sobe tambem um worker local no proprio PC1.
     IP="$(local_ip)"
     write_cluster_env "$IP" "$DATA_MODE"
     scripts/run_distributed_master_pc1.sh
@@ -38,6 +46,8 @@ case "$ACTION" in
     echo "  scripts/run_cluster_pc1.sh submit"
     ;;
   submit)
+    # Submete o job Spark usando o IP salvo no cluster.env.
+    # Use "benchmark" na apresentacao quando quiser medir tempo.
     if [ ! -f cluster.env ]; then
       echo "cluster.env nao existe. Rode primeiro: scripts/run_cluster_pc1.sh master"
       exit 1
@@ -47,6 +57,8 @@ case "$ACTION" in
     scripts/run_distributed_submit_pc1.sh "$SPARK_MASTER_IP" "${SPARK_DATA_MODE:-sample}"
     ;;
   benchmark)
+    # Igual ao submit, mas mede wall time e separa tempo Spark vs overhead.
+    # Saida: output/benchmark/cluster_modes.csv
     if [ ! -f cluster.env ]; then
       echo "cluster.env nao existe. Rode primeiro: scripts/run_cluster_pc1.sh master"
       exit 1
@@ -56,6 +68,7 @@ case "$ACTION" in
     scripts/benchmark_cluster_modes.sh lan-cluster "$SPARK_MASTER_IP" "${SPARK_DATA_MODE:-sample}"
     ;;
   status)
+    # Atalho para ver containers Spark vivos e portas expostas.
     docker ps --filter name=climate-spark --format '{{.Names}} {{.Status}} {{.Ports}}'
     ;;
   *)

@@ -8,6 +8,7 @@ fi
 
 cd "$(dirname "$0")/.."
 
+# IP do PC1 e modo de dados. O driver tambem roda no PC1.
 PC1_IP="$1"
 MODE="${2:-sample}"
 CITY="Rio De Janeiro"
@@ -16,6 +17,8 @@ if [ "$MODE" = "sample" ]; then
 fi
 MASTER_URL="spark://$PC1_IP:7077"
 
+# No modo raw, garante que data/raw existe no PC1 antes do submit.
+# O PC2 tambem precisa ter rodado setup_data.sh para o worker remoto ler /app/data/raw.
 if [ "$MODE" = "raw" ]; then
   scripts/setup_data.sh
 elif [ "$MODE" != "sample" ]; then
@@ -26,7 +29,12 @@ fi
 mkdir -p output
 chmod 777 output
 
+# Constroi a imagem customizada do projeto a partir do Dockerfile.
+# Essa imagem roda o driver/spark-submit e precisa de dependencias Python.
 docker build -t climate-spark:local .
+
+# Roda o driver Spark em container temporario.
+# Portas 40444 e 40445 ficam fixas para workers remotos conseguirem voltar no driver.
 docker run --rm \
   -p 4040:4040 \
   -p 40444:40444 \
