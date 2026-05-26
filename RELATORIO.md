@@ -219,7 +219,7 @@ Os workers locais estao em `docker-compose.yml`. Cada worker usa:
 --memory 2G
 ```
 
-Para testar mais recursos por worker, pode-se mudar para `--cores 4` e `--memory 4G`, desde que a maquina tenha CPU e memoria suficientes. No modo 2 PCs, a mesma configuracao fica no script `scripts/run_distributed_worker.sh`.
+Para testar mais recursos por worker, pode-se mudar para `--cores 4` e `--memory 4G`, desde que a maquina tenha CPU e memoria suficientes. No modo 2 PCs, a mesma configuracao fica no script `scripts/pc2_worker_raw.sh`.
 
 ### 3 workers e 4 workers
 
@@ -237,16 +237,15 @@ As variaveis usadas para documentar o experimento sao:
 ```text
 SPARK_WORKER_CORES
 SPARK_WORKER_MEMORY
-SPARK_WORKER_INSTANCES
 ```
 
 ### Eficiencia
 
-A comparacao deve ser feita com o script `scripts/benchmark_cluster_modes.sh`, que grava `wall_seconds`, `spark_compute_seconds`, `overhead_seconds` e `network_orchestration_overhead`. Depois da correcao do benchmark, cada modo executa uma unica rodada com cache ligado, para que a comparacao seja justa.
+A comparacao deve ser feita com o script `scripts/pc1_benchmark_raw.sh`, que grava `total_seconds`, `processamento_spark_seconds`, `overhead_seconds` e `overhead_seconds`. Depois da correcao do benchmark, cada modo executa uma unica rodada com cache ligado, para que a comparacao seja justa.
 
 Resultado medido com base `raw`:
 
-| Modo | Workers | `wall_seconds` | `spark_compute_seconds` | `overhead_seconds` |
+| Modo | Workers | `total_seconds` | `processamento_spark_seconds` | `overhead_seconds` |
 |---|---:|---:|---:|---:|
 | `local-compose` | 2 no PC1 | 158 | 35.4613 | 122.5387 |
 | `lan-cluster` | 1 no PC1 + 1 no PC2 | 188 | 43.8593 | 144.1407 |
@@ -268,7 +267,7 @@ Para comparar N workers contra a base de 2 workers:
 ```text
 speedup = tempo_2_workers / tempo_N_workers
 eficiencia = speedup / (N / 2)
-constante de rede aproximada = network_orchestration_overhead
+constante de rede aproximada = overhead_seconds
 ```
 
 Se 3 ou 4 workers nao diminuirem o tempo, os motivos provaveis sao: dataset pequeno, poucas particoes, workers competindo pelo mesmo disco no mesmo PC, shuffle alto, escrita final serializada por `coalesce(1)`, janelas sem particionamento ou gargalo no driver.

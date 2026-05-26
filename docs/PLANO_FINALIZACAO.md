@@ -95,8 +95,8 @@ Rodar teste e verificar falha antes da implementacao quando aplicavel.
 
 ### Local Docker
 
-- Manter `scripts/run_demo.sh` para Compose local.
-- Manter `scripts/run_all.sh` para Compose local com dados reais.
+- Manter `scripts/local_workers_raw.sh 2` para Compose local.
+- Manter `scripts/local_workers_raw.sh 2` para Compose local com dados reais.
 - Garantir output gravavel no container.
 - Fixar imagem Spark em uma tag unica.
 
@@ -104,7 +104,7 @@ Rodar teste e verificar falha antes da implementacao quando aplicavel.
 
 Criar script separado:
 
-- `scripts/run_distributed_submit_pc1.sh <IP_DO_PC_1> [sample|raw]`
+- `scripts/pc1_benchmark_raw.sh`
 
 Fluxo:
 
@@ -175,27 +175,27 @@ bash -n scripts/*.sh
 docker compose config
 .venv/bin/python -m pytest -q -p no:cacheprovider
 docker compose run --rm spark-app python3 -m pytest tests -q
-scripts/run_demo.sh
+scripts/local_workers_raw.sh 2
 scripts/setup_data.sh
 ```
 
 Se houver tempo:
 
 ```bash
-scripts/run_all.sh
+scripts/local_workers_raw.sh 2
 ```
 
 Para 2 PCs, testar no dia:
 
 ```bash
 # PC1
-scripts/run_distributed_master_pc1.sh
+scripts/pc1_start_raw.sh
 
 # PC2
-scripts/run_distributed_worker_pc2.sh <IP_DO_PC_1>
+scripts/pc2_worker_raw.sh <IP_DO_PC1>
 
 # PC1
-scripts/run_distributed_submit_pc1.sh <IP_DO_PC_1> sample
+scripts/pc1_benchmark_raw.sh
 ```
 
 ## 7. Revisao final por subagentes

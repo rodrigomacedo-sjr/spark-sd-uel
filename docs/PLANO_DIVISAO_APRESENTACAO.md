@@ -55,7 +55,7 @@ PC 1:
 
 ```bash
 scripts/setup_data.sh
-scripts/run_distributed_master_pc1.sh
+scripts/pc1_start_raw.sh
 ```
 
 PC 2:
@@ -63,13 +63,13 @@ PC 2:
 ```bash
 git clone https://github.com/rodrigomacedo-sjr/spark-sd-uel.git spark
 cd spark
-scripts/run_distributed_worker_pc2.sh <IP_DO_PC_1>
+scripts/pc2_worker_raw.sh <IP_DO_PC1>
 ```
 
 PC 1 submete:
 
 ```bash
-scripts/run_distributed_submit_pc1.sh <IP_DO_PC_1> sample
+scripts/pc1_benchmark_raw.sh
 ```
 
 Para dados reais, PC1 e PC2 precisam ter `temperatura_kaggle.zip` e rodar `scripts/setup_data.sh`.

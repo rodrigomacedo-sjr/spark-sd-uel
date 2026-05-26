@@ -222,9 +222,9 @@ O processamento foi distribuido, mas nao foi mais rapido nesta rodada. A Spark U
 **Como trocar quantidade localmente:**
 
 ```text
-scripts/run_demo.sh 1 -> master + 1 worker
-scripts/run_demo.sh 2 -> master + 2 workers
-scripts/run_demo.sh 3 -> master + 3 workers
+scripts/local_workers_raw.sh 2 1 -> master + 1 worker
+scripts/local_workers_raw.sh 2 2 -> master + 2 workers
+scripts/local_workers_raw.sh 2 3 -> master + 3 workers
 ```
 
 Frase pronta:
@@ -248,16 +248,16 @@ WindowExec: No Partition Defined for Window operation
 ## Comandos
 
 ```bash
-scripts/run_demo.sh 1
-scripts/run_demo.sh 2
-scripts/run_demo.sh 3
-SPARK_WORKER_INSTANCES=3 scripts/run_all.sh
-scripts/run_distributed_master_pc1.sh
-scripts/run_distributed_worker_pc2.sh <IP_DO_PC1>
-scripts/run_distributed_submit_pc1.sh <IP_DO_PC1> sample
-scripts/run_distributed_submit_pc1.sh <IP_DO_PC1> raw
-scripts/benchmark_cluster_modes.sh local-compose raw
-scripts/benchmark_cluster_modes.sh lan-cluster <IP_DO_PC1> raw
+scripts/local_workers_raw.sh 2 1
+scripts/local_workers_raw.sh 2 2
+scripts/local_workers_raw.sh 2 3
+scripts/local_workers_raw.sh 3
+scripts/pc1_start_raw.sh
+scripts/pc2_worker_raw.sh <IP_DO_PC1>
+scripts/pc1_benchmark_raw.sh
+scripts/pc1_benchmark_raw.sh
+scripts/local_workers_raw.sh 2
+scripts/pc1_benchmark_raw.sh
 scripts/stop_distributed.sh
 ```
 

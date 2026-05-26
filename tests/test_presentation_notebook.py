@@ -53,11 +53,10 @@ def test_presentation_notebook_references_real_code_and_all_questions():
         "src/climate_spark/analytics.py",
         "src/climate_spark/plotting.py",
         "docker-compose.yml",
-        "scripts/run_demo.sh",
-        "scripts/run_all.sh",
-        "scripts/run_distributed_master_pc1.sh",
-        "scripts/run_distributed_worker_pc2.sh",
-        "scripts/run_distributed_submit_pc1.sh",
+        "scripts/local_workers_raw.sh",
+        "scripts/pc1_start_raw.sh",
+        "scripts/pc2_worker_raw.sh",
+        "scripts/pc1_benchmark_raw.sh",
         "RELATORIO.md",
         "PLANO_DIVISAO_APRESENTACAO.md",
     ]
@@ -93,7 +92,7 @@ def test_presentation_notebook_proves_distribution_and_avoids_em_dash():
 def test_presentation_markdown_points_to_notebook():
     root = Path(__file__).resolve().parents[1]
     readme = (root / "README.md").read_text(encoding="utf-8")
-    plan = (root / "PLANO_DIVISAO_APRESENTACAO.md").read_text(encoding="utf-8")
+    plan = (root / "docs" / "PLANO_DIVISAO_APRESENTACAO.md").read_text(encoding="utf-8")
 
     notebook_path = "notebooks/apresentacao_spark_clima.ipynb"
     assert notebook_path in readme
@@ -127,9 +126,9 @@ def test_presentation_notebook_explains_two_pc_demo():
     text = _notebook_text()
 
     required_terms = [
-        "scripts/run_distributed_master_pc1.sh",
-        "scripts/run_distributed_worker_pc2.sh",
-        "scripts/run_distributed_submit_pc1.sh",
+        "scripts/pc1_start_raw.sh",
+        "scripts/pc2_worker_raw.sh",
+        "scripts/pc1_benchmark_raw.sh",
         "docker logs climate-spark-worker-lan",
         "docker ps",
         "partition_evidence.groupBy(\"host\")",
@@ -151,30 +150,27 @@ def test_presentation_notebook_explains_two_pc_demo():
 def test_cluster_economics_analysis_exists():
     root = Path(__file__).resolve().parents[1]
     text = _notebook_text()
-    script = root / "scripts" / "benchmark_cluster_modes.sh"
+    script = root / "scripts" / "pc1_benchmark_raw.sh"
 
     assert script.exists()
     script_text = script.read_text(encoding="utf-8")
     required_script_terms = [
-        "local-compose",
-        "lan-cluster",
-        "wall_seconds",
-        "spark_compute_seconds",
-        "overhead_seconds",
-        "scripts/run_distributed_submit_pc1.sh",
-        "docker compose",
+        "Tempo total:",
+        "Processamento Spark:",
+        "Overhead:",
+        "output/benchmark/cluster_modes.csv",
+        "spark-submit",
     ]
     for term in required_script_terms:
         assert term in script_text
 
     required_notebook_terms = [
         "## 16. Analise de tempo: quando cluster vale a pena",
-        "scripts/benchmark_cluster_modes.sh local-compose raw",
-        "scripts/benchmark_cluster_modes.sh lan-cluster <IP_DO_PC1> raw",
-        "wall_seconds",
-        "spark_compute_seconds",
+        "scripts/local_workers_raw.sh 2",
+        "scripts/pc1_benchmark_raw.sh",
+        "total_seconds",
+        "processamento_spark_seconds",
         "overhead_seconds",
-        "network_orchestration_overhead",
         "speedup",
         "eficiencia",
         "Amdahl",
@@ -193,12 +189,12 @@ def test_live_pipeline_outputs_and_graphs_exist():
     required_terms = [
         "## 17. Execucao ao vivo: tempo total, outputs e graficos",
         "LIVE_PIPELINE_COMMAND",
-        "pipeline_wall_seconds",
+        "pipeline_total_seconds",
         "output_live_measure",
         "timings_df",
         "plot(kind=\"barh\")",
         "27.77",
-        "scripts/benchmark_cluster_modes.sh local-compose sample",
+        "scripts/local_workers_raw.sh 2",
         "Saida esperada para acompanhar",
         "Grafico de tempo por pergunta",
         "display(Image",
@@ -214,15 +210,14 @@ def test_worker_resources_and_efficiency_docs_are_complete():
     readme = (root / "README.md").read_text(encoding="utf-8")
     report = (root / "RELATORIO.md").read_text(encoding="utf-8")
     compose = (root / "docker-compose.yml").read_text(encoding="utf-8")
-    worker_script = (root / "scripts" / "run_distributed_worker_pc2.sh").read_text(encoding="utf-8")
+    worker_script = (root / "scripts" / "local_workers_raw.sh").read_text(encoding="utf-8")
 
     required_config_terms = [
         "SPARK_WORKER_CORES",
         "SPARK_WORKER_MEMORY",
-        "SPARK_WORKER_INSTANCES",
-        "--scale spark-worker",
-        "--cores ${SPARK_WORKER_CORES}",
-        "--memory ${SPARK_WORKER_MEMORY}",
+        "local_workers_raw.sh",
+        "--cores",
+        "--memory",
     ]
     for term in required_config_terms:
         assert term in compose or term in worker_script or term in readme

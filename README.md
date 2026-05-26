@@ -35,7 +35,7 @@ Usa dados pequenos versionados em `data/sample/`.
 
 ```bash
 cd spark
-scripts/run_demo.sh
+scripts/local_workers_raw.sh 2
 ```
 
 Verifique:
@@ -79,7 +79,7 @@ O script extrai os CSVs do zip Kaggle para `data/raw/` e baixa `owid-co2-data.cs
 
 ```bash
 cd spark
-scripts/run_all.sh
+scripts/local_workers_raw.sh 2
 ```
 
 Esse modo sobe 1 master e 2 workers via Docker Compose. Ele roda com cache e sem cache para comparar tempo. A UI local fica em `http://localhost:18080`.
@@ -90,11 +90,11 @@ Esse modo sobe 1 master e 2 workers via Docker Compose. Ele roda com cache e sem
 Para comparar tempo total local contra tempo no cluster de 2 PCs, use:
 
 ```bash
-scripts/benchmark_cluster_modes.sh local-compose raw
-scripts/benchmark_cluster_modes.sh lan-cluster <IP_DO_PC1> raw
+scripts/local_workers_raw.sh 2
+scripts/pc1_benchmark_raw.sh
 ```
 
-O resultado fica em `output/benchmark/cluster_modes.csv`, com `wall_seconds`, `spark_compute_seconds`, `overhead_seconds` e `network_orchestration_overhead`. A analise completa de quando vale a pena usar cluster esta no notebook principal da apresentacao.
+O resultado fica em `output/benchmark/cluster_modes.csv`, com `total_seconds`, `processamento_spark_seconds`, `overhead_seconds` e `overhead_seconds`. A analise completa de quando vale a pena usar cluster esta no notebook principal da apresentacao.
 
 Medicao real com base `raw`, cache ligado, 2 workers e arquivo Kaggle identico nos dois PCs:
 
@@ -134,12 +134,11 @@ Exemplo:
 --memory 4G
 ```
 
-No modo 2 PCs, esses valores ficam em `scripts/run_distributed_worker.sh`. Para padronizar os testes, use estes valores como referencia antes de editar ou rodar:
+No modo 2 PCs, esses valores ficam em `scripts/pc2_worker_raw.sh`. Para padronizar os testes, use estes valores como referencia antes de editar ou rodar:
 
 ```text
 SPARK_WORKER_CORES=2
 SPARK_WORKER_MEMORY=2G
-SPARK_WORKER_INSTANCES=2
 --cores ${SPARK_WORKER_CORES}
 --memory ${SPARK_WORKER_MEMORY}
 ```
@@ -173,7 +172,7 @@ Rode 2, 3 e 4 workers e compare `output/benchmark/cluster_modes.csv`:
 ```text
 speedup = tempo_com_2_workers / tempo_com_N_workers
 eficiencia = speedup / (N / 2)
-constante de rede aproximada = network_orchestration_overhead
+constante de rede aproximada = overhead_seconds
 ```
 
 Se a eficiencia cair ao adicionar workers, o ganho foi consumido por overhead, shuffle, disco ou rede.
@@ -205,13 +204,13 @@ SPARK_DATA_MODE=sample
 PC1 sobe o master e o worker local:
 
 ```bash
-scripts/run_cluster_pc1.sh master
+scripts/pc1_start_raw.sh
 ```
 
 A Spark UI deve mostrar 1 worker vivo no PC1. Depois, no PC2, suba o worker remoto usando o IP impresso pelo PC1:
 
 ```bash
-scripts/run_cluster_pc2.sh <IP_DO_PC1>
+scripts/pc2_worker_raw.sh <IP_DO_PC1>
 ```
 
 A Spark UI deve passar para 2 workers vivos. Esse e o ponto visual que mostra os dois PCs disponiveis para executar tarefas.
@@ -219,13 +218,13 @@ A Spark UI deve passar para 2 workers vivos. Esse e o ponto visual que mostra os
 PC1 submete o job:
 
 ```bash
-scripts/run_cluster_pc1.sh submit
+scripts/pc1_benchmark_raw.sh
 ```
 
 PC1 mede o tempo LAN:
 
 ```bash
-scripts/run_cluster_pc1.sh benchmark
+scripts/pc1_benchmark_raw.sh
 ```
 
 Para dados reais, troque no `cluster.env`:
@@ -245,7 +244,7 @@ Assumimos que os dois PCs estao na mesma rede e conseguem se acessar pelo IP loc
 ```bash
 cd spark
 scripts/setup_data.sh
-scripts/run_distributed_master_pc1.sh
+scripts/pc1_start_raw.sh
 ```
 
 Anote o IP mostrado, exemplo:
@@ -269,7 +268,7 @@ sudo ufw allow 40445/tcp
 ```bash
 git clone https://github.com/rodrigomacedo-sjr/spark-sd-uel.git spark
 cd spark
-scripts/run_distributed_worker.sh 192.168.0.10
+scripts/pc2_worker_raw.sh 192.168.0.10
 ```
 
 Para modo `raw`, o PC 2 tambem precisa ter `temperatura_kaggle.zip` e rodar:
@@ -285,13 +284,13 @@ Motivo: executores Spark leem arquivos em `/app/data/...`, entao PC1 e PC2 preci
 Demo pequena:
 
 ```bash
-scripts/run_distributed_submit_pc1.sh 192.168.0.10 sample
+scripts/pc1_benchmark_raw.sh
 ```
 
 Dados reais:
 
 ```bash
-scripts/run_distributed_submit_pc1.sh 192.168.0.10 raw
+scripts/pc1_benchmark_raw.sh
 ```
 
 Abra:
