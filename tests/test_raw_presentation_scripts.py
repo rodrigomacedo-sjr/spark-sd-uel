@@ -48,3 +48,17 @@ def test_raw_scripts_are_readable_and_raw_only():
     assert "Overhead:" in joined
     assert "output/benchmark/cluster_modes.csv" in joined
     assert "output/benchmark/local_workers.csv" in joined
+
+
+def test_raw_scripts_reset_legacy_benchmark_headers():
+    expected_header = "ambiente,workers,dados,total_seconds,processamento_spark_seconds,overhead_seconds"
+    for name in ["local_workers_raw.sh", "pc1_benchmark_raw.sh"]:
+        text = (SCRIPTS / name).read_text(encoding="utf-8")
+        assert expected_header in text
+        assert "head -n 1" in text
+        assert ".legacy." in text
+
+
+def test_spark_logs_are_quiet_for_presentation():
+    main = (ROOT / "src" / "climate_spark" / "main.py").read_text(encoding="utf-8")
+    assert 'setLogLevel("ERROR")' in main

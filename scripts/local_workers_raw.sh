@@ -17,6 +17,18 @@ BENCHMARK_FILE="output/benchmark/local_workers.csv"
 SPARK_WORKER_CORES="${SPARK_WORKER_CORES:-2}"
 SPARK_WORKER_MEMORY="${SPARK_WORKER_MEMORY:-2G}"
 
+
+ensure_benchmark_header() {
+  local file="$1"
+  local expected="ambiente,workers,dados,total_seconds,processamento_spark_seconds,overhead_seconds"
+  if [ -f "$file" ] && [ "$(head -n 1 "$file")" != "$expected" ]; then
+    mv "$file" "$file.legacy.$(date +%Y%m%d%H%M%S)"
+  fi
+  if [ ! -f "$file" ]; then
+    echo "$expected" > "$file"
+  fi
+}
+
 case "$WORKERS" in
   1|2|3) ;;
   *)
@@ -76,9 +88,7 @@ if [ -n "$TIMINGS_FILE" ] && [ -f "$TIMINGS_FILE" ]; then
 fi
 OVERHEAD_SECONDS="$(awk -v total="$WALL_SECONDS" -v spark="$SPARK_COMPUTE_SECONDS" 'BEGIN {printf "%.4f", total - spark}')"
 
-if [ ! -f "$BENCHMARK_FILE" ]; then
-  echo "ambiente,workers,dados,total_seconds,processamento_spark_seconds,overhead_seconds" > "$BENCHMARK_FILE"
-fi
+ensure_benchmark_header "$BENCHMARK_FILE"
 echo "local,$WORKERS,raw,$WALL_SECONDS,$SPARK_COMPUTE_SECONDS,$OVERHEAD_SECONDS" >> "$BENCHMARK_FILE"
 
 echo "Benchmark salvo: $BENCHMARK_FILE"

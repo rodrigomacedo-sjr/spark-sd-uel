@@ -17,6 +17,18 @@ MASTER_URL="spark://$PC1_IP:7077"
 IMAGE="climate-spark:local"
 BENCHMARK_FILE="output/benchmark/cluster_modes.csv"
 
+
+ensure_benchmark_header() {
+  local file="$1"
+  local expected="ambiente,workers,dados,total_seconds,processamento_spark_seconds,overhead_seconds"
+  if [ -f "$file" ] && [ "$(head -n 1 "$file")" != "$expected" ]; then
+    mv "$file" "$file.legacy.$(date +%Y%m%d%H%M%S)"
+  fi
+  if [ ! -f "$file" ]; then
+    echo "$expected" > "$file"
+  fi
+}
+
 # 1. Garante raw no PC1 e imagem atualizada para o driver.
 scripts/setup_data.sh
 mkdir -p output output/benchmark
@@ -60,9 +72,7 @@ if [ -n "$TIMINGS_FILE" ] && [ -f "$TIMINGS_FILE" ]; then
 fi
 OVERHEAD_SECONDS="$(awk -v total="$WALL_SECONDS" -v spark="$SPARK_COMPUTE_SECONDS" 'BEGIN {printf "%.4f", total - spark}')"
 
-if [ ! -f "$BENCHMARK_FILE" ]; then
-  echo "ambiente,workers,dados,total_seconds,processamento_spark_seconds,overhead_seconds" > "$BENCHMARK_FILE"
-fi
+ensure_benchmark_header "$BENCHMARK_FILE"
 echo "2-pcs,2,raw,$WALL_SECONDS,$SPARK_COMPUTE_SECONDS,$OVERHEAD_SECONDS" >> "$BENCHMARK_FILE"
 
 echo "Benchmark salvo: $BENCHMARK_FILE"

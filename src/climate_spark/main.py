@@ -42,7 +42,7 @@ def build_spark(master: str | None) -> SparkSession:
     if master:
         builder = builder.master(master)
     spark = builder.getOrCreate()
-    spark.sparkContext.setLogLevel("WARN")
+    spark.sparkContext.setLogLevel("ERROR")
     return spark
 
 
