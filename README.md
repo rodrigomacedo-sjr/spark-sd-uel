@@ -157,6 +157,62 @@ constante de rede aproximada = network_orchestration_overhead
 
 Se a eficiencia cair ao adicionar workers, o ganho foi consumido por overhead, shuffle, disco ou rede.
 
+
+## Configuracao simples para 2 PCs
+
+Sim, o essencial e o PC2 saber o IP do PC1. Para evitar digitar o IP varias vezes, use `cluster.env`.
+
+Nos dois PCs:
+
+```bash
+cp cluster.env.example cluster.env
+```
+
+No PC1, descubra o IP:
+
+```bash
+hostname -I | awk '{print $1}'
+```
+
+Edite `cluster.env` nos dois PCs:
+
+```text
+SPARK_MASTER_IP=<IP_DO_PC1>
+SPARK_DATA_MODE=sample
+```
+
+PC1 sobe o master:
+
+```bash
+scripts/run_cluster_pc1.sh master
+```
+
+PC2 sobe o worker:
+
+```bash
+scripts/run_cluster_pc2.sh
+```
+
+PC1 submete o job:
+
+```bash
+scripts/run_cluster_pc1.sh submit
+```
+
+PC1 mede o tempo LAN:
+
+```bash
+scripts/run_cluster_pc1.sh benchmark
+```
+
+Para dados reais, troque no `cluster.env`:
+
+```text
+SPARK_DATA_MODE=raw
+```
+
+Nesse caso, rode `scripts/setup_data.sh` nos dois PCs antes.
+
 ## Rodar em dois computadores Ubuntu
 
 Assumimos que os dois PCs estao na mesma rede e conseguem se acessar pelo IP local.
