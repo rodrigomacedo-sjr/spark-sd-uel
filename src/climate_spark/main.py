@@ -23,7 +23,7 @@ from climate_spark.analytics import (
 from climate_spark.cleaning import clean_city_temperatures, clean_co2, clean_global_temperatures, filter_reliable_temperatures
 from climate_spark.config import CO2_FILE, GLOBAL_TEMPERATURE_FILE, OUTPUT_DIR, PROJECT_ROOT, TEMPERATURE_CITY_FILE
 from climate_spark.io_utils import ensure_dirs, read_csv, write_parquet_sample, write_result
-from climate_spark.plotting import plot_co2_temperature_scatter, plot_global_decade_temperature
+from climate_spark.plotting import plot_co2_temperature_scatter, plot_global_decade_temperature, plot_temperature_forecast
 
 
 def parse_args() -> argparse.Namespace:
@@ -31,7 +31,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mode", choices=["sample", "raw"], default="sample")
     parser.add_argument("--cache", choices=["on", "off"], default="on")
     parser.add_argument("--master", default=None)
-    parser.add_argument("--city", default="Sao Paulo")
+    parser.add_argument("--city", default="Rio De Janeiro")
     parser.add_argument("--country", default="Brazil")
     parser.add_argument("--output", default=str(OUTPUT_DIR))
     return parser.parse_args()
@@ -141,6 +141,7 @@ def main() -> None:
 
     plot_global_decade_temperature(q1, output_dir / "plots")
     plot_co2_temperature_scatter(joined, output_dir / "plots")
+    plot_temperature_forecast(annual_city, q8, output_dir / "plots", args.city, args.country)
     spark.stop()
 
 

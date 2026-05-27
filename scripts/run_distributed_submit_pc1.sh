@@ -10,9 +10,9 @@ cd "$(dirname "$0")/.."
 
 PC1_IP="$1"
 MODE="${2:-sample}"
-CITY="São Paulo"
+CITY="Rio De Janeiro"
 if [ "$MODE" = "sample" ]; then
-  CITY="Sao Paulo"
+  CITY="Rio De Janeiro"
 fi
 MASTER_URL="spark://$PC1_IP:7077"
 

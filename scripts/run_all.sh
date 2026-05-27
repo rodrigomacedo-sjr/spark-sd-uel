@@ -20,7 +20,7 @@ docker compose run --rm -e MPLCONFIGDIR=/tmp/matplotlib spark-app /opt/spark/bin
   /app/src/climate_spark/main.py \
   --mode raw \
   --cache on \
-  --city "São Paulo" \
+  --city "Rio De Janeiro" \
   --master "$MASTER_URL" \
   --output /app/output
 
@@ -29,7 +29,7 @@ docker compose run --rm -e MPLCONFIGDIR=/tmp/matplotlib spark-app /opt/spark/bin
   /app/src/climate_spark/main.py \
   --mode raw \
   --cache off \
-  --city "São Paulo" \
+  --city "Rio De Janeiro" \
   --master "$MASTER_URL" \
   --output /app/output
 
