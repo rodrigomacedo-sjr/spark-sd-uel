@@ -17,6 +17,7 @@ docker pull apache/spark-py@sha256:bec1fed7818dd775c8a88224d5b2550c9a85ff81860f7
 docker rm -f climate-spark-worker-lan >/dev/null 2>&1 || true
 docker run -d \
   --network host \
+  --user root \
   --name climate-spark-worker-lan \
   -v "$PWD:/app" \
   -w /app \
