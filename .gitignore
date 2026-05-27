@@ -28,6 +28,7 @@ htmlcov/
 .ipynb_checkpoints/
 .env
 .env.*
+cluster.env
 .vscode/
 .idea/
 .DS_Store
