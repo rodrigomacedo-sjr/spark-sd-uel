@@ -25,14 +25,17 @@ case "$ACTION" in
     write_cluster_env "$IP" "$DATA_MODE"
     scripts/run_distributed_master_pc1.sh
     echo
-    echo "PC1 pronto. Agora rode no PC2:"
+    echo "Subindo worker local no PC1..."
+    scripts/run_distributed_worker.sh "$IP"
+    echo
+    echo "PC1 pronto: master + worker local ativos."
+    echo "Spark UI: http://$IP:8080"
+    echo "Agora rode no PC2:"
     echo "  git pull origin main"
     echo "  scripts/run_cluster_pc2.sh $IP"
     echo
-    echo "Depois rode no PC1:"
+    echo "Quando a UI mostrar 2 workers vivos, rode no PC1:"
     echo "  scripts/run_cluster_pc1.sh submit"
-    echo
-    echo "Spark UI: http://$IP:8080"
     ;;
   submit)
     if [ ! -f cluster.env ]; then

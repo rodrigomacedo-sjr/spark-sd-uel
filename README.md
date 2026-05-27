@@ -113,7 +113,7 @@ Exemplo:
 --memory 4G
 ```
 
-No modo 2 PCs, esses valores ficam em `scripts/run_distributed_worker_pc2.sh`. Uma forma limpa de padronizar os testes e definir mentalmente estas variaveis antes de editar ou rodar:
+No modo 2 PCs, esses valores ficam em `scripts/run_distributed_worker.sh`. Uma forma limpa de padronizar os testes e definir mentalmente estas variaveis antes de editar ou rodar:
 
 ```text
 SPARK_WORKER_CORES=2
@@ -181,17 +181,19 @@ SPARK_MASTER_IP=<IP_DO_PC1>
 SPARK_DATA_MODE=sample
 ```
 
-PC1 sobe o master:
+PC1 sobe o master e o worker local:
 
 ```bash
 scripts/run_cluster_pc1.sh master
 ```
 
-PC2 sobe o worker:
+A Spark UI deve mostrar 1 worker vivo no PC1. Depois, no PC2, suba o worker remoto usando o IP impresso pelo PC1:
 
 ```bash
-scripts/run_cluster_pc2.sh
+scripts/run_cluster_pc2.sh <IP_DO_PC1>
 ```
+
+A Spark UI deve passar para 2 workers vivos. Esse e o ponto visual que mostra os dois PCs disponiveis para executar tarefas.
 
 PC1 submete o job:
 
@@ -246,7 +248,7 @@ sudo ufw allow 40445/tcp
 ```bash
 git clone https://github.com/rodrigomacedo-sjr/spark-sd-uel.git spark
 cd spark
-scripts/run_distributed_worker_pc2.sh 192.168.0.10
+scripts/run_distributed_worker.sh 192.168.0.10
 ```
 
 Para modo `raw`, o PC 2 tambem precisa ter `temperatura_kaggle.zip` e rodar:

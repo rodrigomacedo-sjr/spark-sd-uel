@@ -38,7 +38,7 @@ if ! timeout 5 bash -c "</dev/tcp/$SPARK_MASTER_IP/7077" 2>/dev/null; then
 fi
 
 echo "Conexao OK. Subindo worker no PC2..."
-scripts/run_distributed_worker_pc2.sh "$SPARK_MASTER_IP"
+scripts/run_distributed_worker.sh "$SPARK_MASTER_IP"
 
 echo
 sleep 3

@@ -4,7 +4,7 @@
 Autores: Rodrigo Macedo (RodrigoMacedo) e Gabriel Peres.
 ## Arquitetura
 
-O projeto usa Apache Spark com DataFrames em PySpark. No modo local, `docker-compose.yml` sobe um master e dois workers. No modo distribuido de apresentacao, o PC 1 roda o master e submete o job; o PC 2 roda um worker conectado por `spark://<IP_DO_PC_1>:7077`.
+O projeto usa Apache Spark com DataFrames em PySpark. No modo local, `docker-compose.yml` sobe um master e dois workers. No modo distribuido de apresentacao, o PC 1 roda o master, tambem roda um worker local e submete o job. O PC 2 roda outro worker conectado por `spark://<IP_DO_PC_1>:7077`. Assim a Spark UI mostra dois workers vivos, um em cada maquina, e o job pode distribuir particoes entre os dois PCs.
 
 Portas usadas no modo 2 PCs:
 
@@ -217,7 +217,7 @@ Os workers locais estao em `docker-compose.yml`. Cada worker usa:
 --memory 2G
 ```
 
-Para testar mais recursos por worker, pode-se mudar para `--cores 4` e `--memory 4G`, desde que a maquina tenha CPU e memoria suficientes. No modo 2 PCs, a mesma configuracao fica no script `scripts/run_distributed_worker_pc2.sh`.
+Para testar mais recursos por worker, pode-se mudar para `--cores 4` e `--memory 4G`, desde que a maquina tenha CPU e memoria suficientes. No modo 2 PCs, a mesma configuracao fica no script `scripts/run_distributed_worker.sh`.
 
 ### 3 workers e 4 workers
 
