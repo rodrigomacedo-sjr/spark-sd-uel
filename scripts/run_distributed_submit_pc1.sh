@@ -28,7 +28,9 @@ chmod 777 output
 
 docker build -t climate-spark:local .
 docker run --rm \
-  --network host \
+  -p 4040:4040 \
+  -p 40444:40444 \
+  -p 40445:40445 \
   -e PYTHONPATH=/app/src \
   -e MPLCONFIGDIR=/tmp/matplotlib \
   -v "$PWD:/app" \
@@ -37,6 +39,7 @@ docker run --rm \
   /opt/spark/bin/spark-submit \
     --master "$MASTER_URL" \
     --conf "spark.driver.host=$PC1_IP" \
+    --conf "spark.driver.bindAddress=0.0.0.0" \
     --conf "spark.driver.port=40444" \
     --conf "spark.blockManager.port=40445" \
     /app/src/climate_spark/main.py \
