@@ -22,7 +22,7 @@ from climate_spark.analytics import (
 )
 from climate_spark.cleaning import clean_city_temperatures, clean_co2, clean_global_temperatures, filter_reliable_temperatures
 from climate_spark.config import CO2_FILE, GLOBAL_TEMPERATURE_FILE, OUTPUT_DIR, PROJECT_ROOT, TEMPERATURE_CITY_FILE
-from climate_spark.io_utils import ensure_dirs, read_csv, write_result
+from climate_spark.io_utils import ensure_dirs, read_csv, write_parquet_sample, write_result
 from climate_spark.plotting import plot_co2_temperature_scatter, plot_global_decade_temperature
 
 
@@ -121,6 +121,7 @@ def main() -> None:
     q6 = timed("q6_co2_temperature_correlation", timings, lambda: co2_temperature_correlation(joined))
     write_result(q6, output_dir, "q6_co2_temperature_correlation")
     write_result(joined, output_dir, "joined_temperature_co2")
+    write_parquet_sample(joined, output_dir, "joined_temperature_co2_sample")
 
     # Pergunta 7: ranking de aceleracao termica com window functions.
     decade_country = decade_country_temperatures(annual_country)

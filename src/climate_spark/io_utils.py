@@ -21,3 +21,9 @@ def write_result(df: DataFrame, output_dir: Path, name: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     df.coalesce(1).write.mode("overwrite").option("header", True).csv(str(path))
 
+
+
+def write_parquet_sample(df: DataFrame, output_dir: Path, name: str, rows: int = 1000) -> None:
+    path = output_dir / "parquet" / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    df.limit(rows).write.mode("overwrite").parquet(str(path))

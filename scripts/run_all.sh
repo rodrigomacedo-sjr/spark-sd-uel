@@ -15,7 +15,7 @@ mkdir -p output
 chmod 777 output
 
 docker compose up -d --build spark-master spark-worker-1 spark-worker-2
-docker compose run --rm -e MPLCONFIGDIR=/tmp/matplotlib spark-app spark-submit \
+docker compose run --rm -e MPLCONFIGDIR=/tmp/matplotlib spark-app /opt/spark/bin/spark-submit \
   --master "$MASTER_URL" \
   /app/src/climate_spark/main.py \
   --mode raw \
@@ -24,7 +24,7 @@ docker compose run --rm -e MPLCONFIGDIR=/tmp/matplotlib spark-app spark-submit \
   --master "$MASTER_URL" \
   --output /app/output
 
-docker compose run --rm -e MPLCONFIGDIR=/tmp/matplotlib spark-app spark-submit \
+docker compose run --rm -e MPLCONFIGDIR=/tmp/matplotlib spark-app /opt/spark/bin/spark-submit \
   --master "$MASTER_URL" \
   /app/src/climate_spark/main.py \
   --mode raw \

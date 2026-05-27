@@ -1,5 +1,7 @@
 # Analise Global de Mudancas Climaticas com Spark
 
+
+Autores: Rodrigo Macedo (RodrigoMacedo) e Gabriel Peres.
 Projeto de Sistemas Distribuidos usando Apache Spark para processar dados historicos de temperatura e CO2. O foco e mostrar limpeza, agregacoes distribuidas, join entre bases, window functions, cache e MLlib.
 
 ## Requisitos

@@ -1,5 +1,7 @@
 # Relatorio Tecnico - Analise Climática com Spark
 
+
+Autores: Rodrigo Macedo (RodrigoMacedo) e Gabriel Peres.
 ## Arquitetura
 
 O projeto usa Apache Spark com DataFrames em PySpark. No modo local, `docker-compose.yml` sobe um master e dois workers. No modo distribuido de apresentacao, o PC 1 roda o master e submete o job; o PC 2 roda um worker conectado por `spark://<IP_DO_PC_1>:7077`.

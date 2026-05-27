@@ -34,7 +34,7 @@ docker run --rm \
   -v "$PWD:/app" \
   -w /app \
   climate-spark:local \
-  spark-submit \
+  /opt/spark/bin/spark-submit \
     --master "$MASTER_URL" \
     --conf "spark.driver.host=$PC1_IP" \
     --conf "spark.driver.port=40444" \
