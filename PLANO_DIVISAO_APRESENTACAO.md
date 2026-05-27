@@ -1,5 +1,7 @@
 # Plano de Divisao da Apresentacao
 
+O bulk da apresentacao deve ser o notebook `notebooks/apresentacao_spark_clima.ipynb`. O Markdown abaixo funciona como roteiro de fala e divisao entre Rodrigo e Gabriel, mas o professor deve ver o notebook como guia principal: arquitetura, arquivos, fluxo de dados, divisao por particoes, Spark UI e Q1-Q8 passo a passo.
+
 ## Ordem sugerida
 
 1. Roger abre com arquitetura Spark e Docker.

@@ -169,7 +169,7 @@ Usamos window functions (`lag`) por pais e comparamos a ultima decada completa c
 
 ### 8. Previsao com MLlib
 
-Usamos `LinearRegression` do Spark MLlib. Feature: `year`. Label: `avg_temperature`. Para `São Paulo, Brazil`, a base termina antes dos anos atuais; por isso os 5 anos previstos sao os 5 anos seguintes ao ultimo ano disponivel.
+Usamos `LinearRegression` do Spark MLlib. Feature: `year`. Label: `avg_temperature`. Para `Rio De Janeiro, Brazil`, a base termina antes dos anos atuais; por isso os 5 anos previstos sao os 5 anos seguintes ao ultimo ano disponivel. O grafico da previsao deve mostrar pontos historicos nao conectados, uma linha de regressao historica e uma linha de previsao.
 
 | Ano | Temperatura prevista |
 |---:|---:|
@@ -198,6 +198,59 @@ O pipeline gera:
 | Q6 | 0.6194 | 14.3876 |
 | Q7 | 4.3224 | 24.9529 |
 | Q8 | 3.9533 | 22.0286 |
+
+
+## Analise de workers e eficiencia
+
+A configuracao principal do trabalho usa 2 workers. Isso e suficiente para demonstrar processamento distribuido e manter a apresentacao controlada. Testes com 3 workers e 4 workers servem como analise de escalabilidade, nao como requisito da entrega base.
+
+### por que demora
+
+O tempo vem de varias partes: leitura de CSV, inferencia de schema, limpeza, agregacoes, join entre temperatura e CO2, window functions, treino MLlib, escrita de CSV com `coalesce(1)` e geracao de graficos no driver. Nem tudo escala com mais workers.
+
+### mais recursos por worker
+
+Os workers locais estao em `docker-compose.yml`. Cada worker usa:
+
+```text
+--cores 2
+--memory 2G
+```
+
+Para testar mais recursos por worker, pode-se mudar para `--cores 4` e `--memory 4G`, desde que a maquina tenha CPU e memoria suficientes. No modo 2 PCs, a mesma configuracao fica no script `scripts/run_distributed_worker_pc2.sh`.
+
+### 3 workers e 4 workers
+
+No Compose atual, os workers estao nomeados como `spark-worker-1` e `spark-worker-2`. Para 3 workers, duplica-se o bloco do worker e cria-se `spark-worker-3`, com porta `8083:8081`. Para 4 workers, cria-se `spark-worker-4`, com porta `8084:8081`.
+
+Se o Compose for refatorado para um servico generico `spark-worker`, a escala poderia ser feita com:
+
+```bash
+SPARK_WORKER_CORES=2 SPARK_WORKER_MEMORY=2G docker compose up -d --scale spark-worker=3
+SPARK_WORKER_CORES=2 SPARK_WORKER_MEMORY=2G docker compose up -d --scale spark-worker=4
+```
+
+As variaveis usadas para documentar o experimento sao:
+
+```text
+SPARK_WORKER_CORES
+SPARK_WORKER_MEMORY
+SPARK_WORKER_INSTANCES
+```
+
+### Eficiencia
+
+A comparacao deve ser feita com o script `scripts/benchmark_cluster_modes.sh`, que grava `wall_seconds`, `spark_compute_seconds`, `overhead_seconds` e `network_orchestration_overhead`.
+
+Para comparar N workers contra a base de 2 workers:
+
+```text
+speedup = tempo_2_workers / tempo_N_workers
+eficiencia = speedup / (N / 2)
+constante de rede aproximada = network_orchestration_overhead
+```
+
+Se 3 ou 4 workers nao diminuirem o tempo, os motivos provaveis sao: dataset pequeno, poucas particoes, workers competindo pelo mesmo disco no mesmo PC, shuffle alto, escrita final serializada por `coalesce(1)` ou gargalo no driver.
 
 ## Limitacoes assumidas
 

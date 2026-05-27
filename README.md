@@ -46,6 +46,16 @@ Resultados: output/results/
 Graficos: output/plots/
 ```
 
+## Notebook principal da apresentacao
+
+O bulk da apresentacao esta em:
+
+```text
+notebooks/apresentacao_spark_clima.ipynb
+```
+
+Ele explica arquivo por arquivo, mostra onde cada etapa esta feita, prova a divisao por particoes, detalha o join temperatura+CO2 e responde Q1-Q8 passo a passo. Tambem tem parametros faceis de mudar para iterar percentuais, cidade, pais, limites de ranking, anos de previsao e numero de particoes.
+
 ## Preparar dados reais
 
 ```bash
@@ -63,6 +73,89 @@ scripts/run_all.sh
 ```
 
 Esse modo sobe 1 master e 2 workers via Docker Compose. Ele roda com cache e sem cache para comparar tempo. A UI local fica em `http://localhost:18080`.
+
+
+## Benchmark local vs cluster LAN
+
+Para comparar tempo total local contra tempo no cluster de 2 PCs, use:
+
+```bash
+scripts/benchmark_cluster_modes.sh local-compose raw
+scripts/benchmark_cluster_modes.sh lan-cluster <IP_DO_PC1> raw
+```
+
+O resultado fica em `output/benchmark/cluster_modes.csv`, com `wall_seconds`, `spark_compute_seconds`, `overhead_seconds` e `network_orchestration_overhead`. A analise completa de quando vale a pena usar cluster esta no notebook principal da apresentacao.
+
+
+## Workers, recursos e eficiencia
+
+A entrega principal usa 2 workers, como esta em `docker-compose.yml`. Para testar 3 workers no Docker Compose atual, duplique o bloco `spark-worker-2`, crie `spark-worker-3`, troque `container_name` para `climate-spark-worker-3` e exponha `8083:8081`. Para 4 workers, crie tambem `spark-worker-4` com `8084:8081`. Depois confira na Spark UI:
+
+```text
+Alive Workers: 3
+Total Cores: soma dos cores dos workers
+Total Memory: soma da memoria dos workers
+```
+
+Aparecer 3 workers vivos prova que o cluster registrou os workers. Para provar que o job usou todos, abra a aplicacao `climate-spark-analysis` e confira tasks executadas em executors diferentes.
+
+Para mais recursos por worker, altere nos comandos dos workers:
+
+```text
+--cores 2
+--memory 2G
+```
+
+Exemplo:
+
+```text
+--cores 4
+--memory 4G
+```
+
+No modo 2 PCs, esses valores ficam em `scripts/run_distributed_worker_pc2.sh`. Uma forma limpa de padronizar os testes e definir mentalmente estas variaveis antes de editar ou rodar:
+
+```text
+SPARK_WORKER_CORES=2
+SPARK_WORKER_MEMORY=2G
+SPARK_WORKER_INSTANCES=2
+--cores ${SPARK_WORKER_CORES}
+--memory ${SPARK_WORKER_MEMORY}
+```
+
+Se o Compose for refatorado para um unico servico `spark-worker`, o teste de 3 ou 4 workers pode ser feito com:
+
+```bash
+SPARK_WORKER_CORES=2 SPARK_WORKER_MEMORY=2G docker compose up -d --scale spark-worker=3
+SPARK_WORKER_CORES=2 SPARK_WORKER_MEMORY=2G docker compose up -d --scale spark-worker=4
+```
+
+No arquivo atual ha workers nomeados individualmente, entao o caminho mais direto para a apresentacao e duplicar o bloco do worker.
+
+### por que demora
+
+O pipeline demora porque le CSV, infere schema, limpa dados, calcula agregacoes, faz join, usa window functions, treina MLlib, salva CSV com `coalesce(1)` e gera graficos no driver. Mesmo com workers em paralelo, algumas partes continuam seriais ou dependem de shuffle.
+
+### Por que 3 workers podem nao reduzir o tempo
+
+- Dataset pequeno nao ocupa todos os cores.
+- Poucas particoes geram poucas tasks.
+- Workers no mesmo PC dividem o mesmo disco, CPU e memoria fisica.
+- `groupBy`, `join` e `Window` podem gastar tempo em shuffle.
+- `coalesce(1)` reduz paralelismo na escrita final.
+- O driver e os graficos nao escalam com workers.
+
+### Como medir eficiencia
+
+Rode 2, 3 e 4 workers e compare `output/benchmark/cluster_modes.csv`:
+
+```text
+speedup = tempo_com_2_workers / tempo_com_N_workers
+eficiencia = speedup / (N / 2)
+constante de rede aproximada = network_orchestration_overhead
+```
+
+Se a eficiencia cair ao adicionar workers, o ganho foi consumido por overhead, shuffle, disco ou rede.
 
 ## Rodar em dois computadores Ubuntu
 

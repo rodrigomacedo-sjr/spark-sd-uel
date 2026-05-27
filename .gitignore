@@ -11,6 +11,8 @@ temperatura_kaggle.zip
 output/
 output_real/
 output_verify/
+output_live_measure/
+output_verify_rio/
 spark-warehouse/
 metastore_db/
 derby.log
