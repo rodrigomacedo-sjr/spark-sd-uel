@@ -131,13 +131,93 @@ O resultado foi W.
 - O trabalho inteiro segue o mesmo padrao: limpar dados, padronizar chaves, agregar na granularidade correta, aplicar funcao Spark adequada e salvar resultado.
 - A parte distribuida aparece porque essas operacoes rodam como jobs, stages e tasks nos workers do Spark.
 
+## Plano da apresentacao - 30 minutos
+
+### Divisao recomendada
+
+| Tempo | Quem | Tema | O que mostrar/falar |
+|---:|---|---|---|
+| 0:00-2:00 | Rodrigo | Abertura | Objetivo do projeto, bases usadas e ideia de pipeline ETL com Spark. |
+| 2:00-6:00 | Rodrigo | Arquitetura | Docker Compose, master, workers, app, driver/executors, Spark UI. |
+| 6:00-10:00 | Rodrigo | Rodar em multiplos PCs | PC1 master, PC2 worker, IP, portas, dados nos dois PCs, Spark UI mostrando worker. |
+| 10:00-14:00 | Rodrigo | Limpeza e pipeline | CSV -> DataFrame -> limpeza -> agregacoes -> join -> resultados. |
+| 14:00-18:00 | Rodrigo | Q1-Q4 | Temperatura, continentes, desvio padrao, proxy tropical e Pearson. |
+| 18:00-24:00 | Gabriel | Q5-Q8 | Qualidade, join CO2, Pearson, window functions, MLlib. |
+| 24:00-27:00 | Gabriel | Resultados e limitacoes | Resultados reais, correlacao fraca, decada completa, previsao simples. |
+| 27:00-30:00 | Ambos | Fechamento | Cache vs sem cache, Parquet, graficos, perguntas. |
+
+### Se Gabriel faltar
+
+- Rodrigo faz 0:00-18:00 normalmente.
+- Em 18:00-26:00, Rodrigo apresenta Q5-Q8 usando o resumo do Gabriel.
+- Em 26:00-30:00, Rodrigo mostra resultados, cache, Parquet e responde perguntas.
+
+### Ordem segura para a demo em multiplos computadores
+
+1. Antes da apresentacao, testar se os dois PCs estao no mesmo Wi-Fi.
+2. No PC1, abrir terminal em `spark/`.
+3. No PC1:
+
+```bash
+scripts/setup_data.sh
+scripts/run_distributed_master_pc1.sh
+```
+
+4. Anotar o IP mostrado, exemplo `192.168.0.10`.
+5. No PC2, abrir terminal na pasta `spark/` e rodar:
+
+```bash
+scripts/run_distributed_worker_pc2.sh 192.168.0.10
+```
+
+6. No PC1, abrir a Spark UI:
+
+```text
+http://192.168.0.10:8080
+```
+
+7. Mostrar que o worker do PC2 apareceu registrado.
+8. No PC1, submeter job pequeno para demonstrar ao vivo:
+
+```bash
+scripts/run_distributed_submit_pc1.sh 192.168.0.10 sample
+```
+
+9. Mostrar `output/results/`, `output/plots/` e a Spark UI com aplicacao/jobs.
+10. Se der problema de rede, usar fallback local:
+
+```bash
+scripts/run_demo.sh
+```
+
+### Frase para explicar 2 PCs
+
+- No modo de dois computadores, o PC1 roda o master e o driver do job. O PC2 roda um worker conectado ao master pelo IP local. Quando o job e submetido, o Spark master distribui tarefas para os executors nos workers. Os dois PCs precisam enxergar os mesmos arquivos porque os executors leem dados em `/app/data`.
+
+### O que mostrar na Spark UI
+
+- Master URL: `spark://<IP_DO_PC1>:7077`.
+- Workers registrados.
+- Cores e memoria dos workers.
+- Aplicacao `climate-spark-analysis`.
+- Jobs, stages e tasks.
+- Isso comprova que nao foi so um script Python comum; houve execucao no cluster Spark.
+
+### Roteiro de fala de abertura
+
+- Professor, o projeto foi montado como um pipeline de engenharia de dados com Apache Spark. A entrada sao dados historicos de temperatura por cidade e dados de CO2 por pais. O Spark le esses CSVs como DataFrames, limpa e padroniza os dados, executa agregacoes, join, correlacoes, ranking com window functions e previsao com MLlib. A execucao pode rodar localmente com Docker Compose ou distribuida em dois computadores no mesmo Wi-Fi.
+
+### Roteiro de fechamento
+
+- O resultado principal e que conseguimos responder as 8 perguntas usando o mesmo pipeline distribuido. O Spark foi importante porque permite dividir os dados em particoes, executar tasks nos workers, reaproveitar DataFrames com cache e registrar tudo na Spark UI. Como artefatos, temos CSVs de resposta, graficos e uma amostra Parquet do dataset final apos limpeza e join.
+
 ## Guia de consulta rapida
 
 ### O que dizer sobre sua parte
 
 - Eu fiquei mais na parte de Python, logica basica do Spark, arquitetura local, leitura dos CSVs, limpeza da temperatura, cache e perguntas Q1-Q4.
 - O Gabriel ficou mais com CO2, join, qualidade de dados, window functions, MLlib e Q5-Q8.
-- Como ele nao vai apresentar, eu consigo explicar a ideia geral da parte dele, principalmente o fluxo e as decisoes tecnicas.
+- Se o Gabriel nao conseguir apresentar, eu explico a ideia geral da parte dele, principalmente o fluxo e as decisoes tecnicas.
 - Se perguntarem algo muito especifico de formula, responda pela logica: limpar dados, padronizar chave, agregar, aplicar funcao Spark e salvar resultado.
 
 ### Como rodar a demo rapida
