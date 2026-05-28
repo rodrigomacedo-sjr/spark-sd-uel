@@ -9,6 +9,7 @@ temperatura_kaggle.zip
 
 # Saidas geradas pelo Spark
 output/
+output_notebook/
 output_real/
 output_verify/
 output_live_measure/
@@ -37,3 +38,9 @@ cluster.env
 .superpowers/
 docs/superpowers/
 java_opts.txt
+
+# Auxiliares locais do LaTeX
+relatorio_latex/*.aux
+relatorio_latex/*.out
+relatorio_latex/*.toc
+relatorio_latex/main.pdf

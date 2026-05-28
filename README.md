@@ -54,7 +54,17 @@ O material principal da apresentacao esta em:
 notebooks/apresentacao_spark_clima.ipynb
 ```
 
-Ele explica arquivo por arquivo, mostra onde cada etapa esta feita, prova a divisao por particoes, detalha o join temperatura+CO2 e responde Q1-Q8 passo a passo. Tambem tem parametros faceis de mudar para iterar percentuais, cidade, pais, limites de ranking, anos de previsao e numero de particoes.
+Este e o notebook limpo, sem outputs salvos. Use ele para editar, rodar ao vivo e manter o historico organizado.
+
+Tambem existe uma copia executada, com outputs e graficos ja salvos:
+
+```text
+notebooks/apresentacao_spark_clima_com_outputs.ipynb
+```
+
+Use essa copia como plano B durante a apresentacao, caso nao de tempo de rodar tudo ao vivo. Ela foi executada com `DATA_MODE=raw` e `SPARK_MASTER=local[2]`.
+
+Os dois notebooks explicam arquivo por arquivo, mostram onde cada etapa esta feita, provam a divisao por particoes, detalham o join temperatura+CO2 e respondem Q1-Q8 passo a passo. Tambem tem parametros faceis de mudar para iterar percentuais, cidade, pais, limites de ranking, anos de previsao e numero de particoes.
 
 ## Preparar dados reais
 
