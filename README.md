@@ -48,7 +48,7 @@ Graficos: output/plots/
 
 ## Notebook principal da apresentacao
 
-O bulk da apresentacao esta em:
+O material principal da apresentacao esta em:
 
 ```text
 notebooks/apresentacao_spark_clima.ipynb
@@ -124,7 +124,7 @@ Exemplo:
 --memory 4G
 ```
 
-No modo 2 PCs, esses valores ficam em `scripts/run_distributed_worker.sh`. Uma forma limpa de padronizar os testes e definir mentalmente estas variaveis antes de editar ou rodar:
+No modo 2 PCs, esses valores ficam em `scripts/run_distributed_worker.sh`. Para padronizar os testes, use estes valores como referencia antes de editar ou rodar:
 
 ```text
 SPARK_WORKER_CORES=2
@@ -143,7 +143,7 @@ SPARK_WORKER_CORES=2 SPARK_WORKER_MEMORY=2G docker compose up -d --scale spark-w
 
 No arquivo atual ha workers nomeados individualmente, entao o caminho mais direto para a apresentacao e duplicar o bloco do worker.
 
-### por que demora
+### Por que demora
 
 O pipeline demora porque le CSV, infere schema, limpa dados, calcula agregacoes, faz join, usa window functions, treina MLlib, salva CSV com `coalesce(1)` e gera graficos no driver. Mesmo com workers em paralelo, algumas partes continuam seriais ou dependem de shuffle.
 
@@ -171,7 +171,7 @@ Se a eficiencia cair ao adicionar workers, o ganho foi consumido por overhead, s
 
 ## Configuracao simples para 2 PCs
 
-Sim, o essencial e o PC2 saber o IP do PC1. Para evitar digitar o IP varias vezes, use `cluster.env`.
+O essencial e o PC2 saber o IP do PC1. Para evitar digitar o IP varias vezes, use `cluster.env`.
 
 Nos dois PCs:
 

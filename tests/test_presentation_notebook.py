@@ -34,7 +34,10 @@ def test_presentation_notebook_has_required_storyline():
         "## 13. Spark UI: o que mostrar para provar",
         "## 14. Roteiro Docker local",
         "## 15. Roteiro em 2 PCs",
-        "## 16. Defesa tecnica curta",
+        "## 16. Analise de tempo: quando cluster vale a pena",
+        "## 17. Execucao ao vivo: tempo total, outputs e graficos",
+        "## 18. Workers, recursos e eficiencia",
+        "## 19. Defesa tecnica curta",
     ]
     for section in required_sections:
         assert section in text
@@ -165,7 +168,7 @@ def test_cluster_economics_analysis_exists():
         assert term in script_text
 
     required_notebook_terms = [
-        "## 17. Analise de tempo: quando cluster vale a pena",
+        "## 16. Analise de tempo: quando cluster vale a pena",
         "scripts/benchmark_cluster_modes.sh local-compose raw",
         "scripts/benchmark_cluster_modes.sh lan-cluster <IP_DO_PC1> raw",
         "wall_seconds",
@@ -188,7 +191,7 @@ def test_live_pipeline_outputs_and_graphs_exist():
     text = _notebook_text()
 
     required_terms = [
-        "## 18. Execucao ao vivo: tempo total, outputs e graficos",
+        "## 17. Execucao ao vivo: tempo total, outputs e graficos",
         "LIVE_PIPELINE_COMMAND",
         "pipeline_wall_seconds",
         "output_live_measure",
@@ -225,8 +228,8 @@ def test_worker_resources_and_efficiency_docs_are_complete():
         assert term in compose or term in worker_script or term in readme
 
     required_doc_terms = [
-        "por que demora",
-        "mais recursos por worker",
+        "Por que demora",
+        "Mais recursos por worker",
         "3 workers",
         "4 workers",
         "eficiencia",

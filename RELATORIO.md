@@ -6,6 +6,8 @@ Autores: Rodrigo Macedo (RodrigoMacedo) e Gabriel Peres.
 
 O projeto usa Apache Spark com DataFrames em PySpark. No modo local, `docker-compose.yml` sobe um master e dois workers. No modo distribuido de apresentacao, o PC 1 roda o master, tambem roda um worker local e submete o job. O PC 2 roda outro worker conectado por `spark://<IP_DO_PC_1>:7077`. Assim a Spark UI mostra dois workers vivos, um em cada maquina, e o job pode distribuir particoes entre os dois PCs.
 
+No modo `raw`, os dados ficam replicados nos dois PCs. Cada executor le os arquivos locais montados em `/app/data/...`, entao PC1 e PC2 precisam ter o mesmo `data/raw` preparado antes do benchmark.
+
 Portas usadas no modo 2 PCs:
 
 - `7077`: master Spark.
@@ -204,11 +206,11 @@ O pipeline gera:
 
 A configuracao principal do trabalho usa 2 workers. Isso e suficiente para demonstrar processamento distribuido e manter a apresentacao controlada. Testes com 3 workers e 4 workers servem como analise de escalabilidade, nao como requisito da entrega base.
 
-### por que demora
+### Por que demora
 
 O tempo vem de varias partes: leitura de CSV, inferencia de schema, limpeza, agregacoes, join entre temperatura e CO2, window functions, treino MLlib, escrita de CSV com `coalesce(1)` e geracao de graficos no driver. Nem tudo escala com mais workers.
 
-### mais recursos por worker
+### Mais recursos por worker
 
 Os workers locais estao em `docker-compose.yml`. Cada worker usa:
 
@@ -276,3 +278,9 @@ Se 3 ou 4 workers nao diminuirem o tempo, os motivos provaveis sao: dataset pequ
 - Q4 usa proxy de minima/maxima anual porque a base por cidade so tem temperatura media mensal.
 - Q6 mede relacao estatistica simples, nao causalidade climatica.
 - A base termina antes dos anos atuais em varios recortes; por isso Q7 usa decadas completas e Q8 preve anos logo apos o ultimo disponivel.
+
+## Conclusao
+
+O projeto demonstra um pipeline Spark completo e distribuido: leitura de CSVs reais, limpeza, normalizacao, agregacoes, join entre temperatura e CO2, window functions, cache, MLlib, escrita de resultados e graficos. A execucao em 2 PCs foi validada pela Spark UI com dois workers vivos e executores em hosts diferentes.
+
+A medicao com base `raw` mostrou que distribuir nao garante acelerar sempre: o modo LAN terminou em 188s, enquanto o Compose local terminou em 158s. A conclusao e que o cluster foi funcional e distribuiu processamento, mas nesta carga o overhead de rede, orquestracao, shuffle e etapas pouco paralelizaveis foi maior que o ganho de usar o segundo PC.
