@@ -1,176 +1,246 @@
 # Saber Gabriel
 
-Responsavel por CO2, join, qualidade, window functions, MLlib e Q5-Q8.
+Responsavel por qualidade dos dados, CO2, join, Pearson, window functions, MLlib, Q5-Q8 e interpretacao dos resultados analiticos.
 
-## Papel na apresentacao
+## Estado final que preciso saber
 
-- Explicar a parte mais analitica e avancada do trabalho.
-- Conectar temperatura com CO2.
-- Defender Q5-Q8.
-- Mostrar que o projeto nao ficou so em media simples: teve join, Pearson, window functions e MLlib.
-
-## Roteiro Gabriel - 30 minutos
-
-### Entrada recomendada
-
-- Depois do Rodrigo explicar arquitetura, limpeza e Q1-Q4, entrar dizendo:
+Material principal:
 
 ```text
-A partir da base limpa, minha parte usa a temperatura agregada e cruza com CO2. Aqui entram as partes mais especificas do Spark: join entre bases, window functions e MLlib.
+relatorio_latex/relatorio.pdf
 ```
 
-### Tempo sugerido
+Notebooks:
 
-| Tempo | Tema | Fala principal |
-|---:|---|---|
-| 18:00-19:00 | Ponte | Temperatura mensal vira pais/ano para cruzar com CO2. |
-| 19:00-20:30 | Q5 | Qualidade de dados por incerteza. |
-| 20:30-22:30 | Q6 | Join temperatura + CO2 e Pearson. |
-| 22:30-24:00 | Q7 | Window functions para aceleracao termica. |
-| 24:00-25:30 | Q8 | MLlib com regressao linear. |
-| 25:30-27:00 | Limitacoes | Correlacao fraca, decada parcial, previsao simples. |
+```text
+notebooks/apresentacao_spark_clima.ipynb
+notebooks/apresentacao_spark_clima_com_outputs.ipynb
+```
 
-## Conceitos que preciso dominar
+Notebook com outputs:
+
+```text
+DATA_MODE=raw
+SPARK_MASTER=local[2]
+tempo: 337.14s
+```
+
+Zip de entrega:
+
+```text
+entrega_spark_sd_uel.zip
+```
+
+## Entrada na apresentacao
+
+```text
+A partir da base limpa, minha parte usa os dados agregados para analisar qualidade, cruzar temperatura com CO2, calcular correlacao, comparar decadas com window functions e fazer uma previsao simples com MLlib.
+```
+
+## Conceitos
 
 ### Join
 
-- Join cruza duas tabelas por uma chave comum.
-- Problema do trabalho:
-  - temperatura: cidade + mes;
-  - CO2: pais + ano.
-- Solucao:
-  - agregar temperatura para `country_norm + year`;
-  - limpar CO2 para `country_norm + year`;
-  - fazer join pelas duas colunas.
-- Frase pronta:
-  - O principal desafio do join foi compatibilizar granularidades diferentes: cidade/mes contra pais/ano.
+```text
+temperatura: cidade + mes
+CO2: pais + ano
+```
+
+Solucao:
+
+```text
+temperatura mensal por cidade -> temperatura anual por pais
+CO2 anual por pais -> CO2 anual por pais
+join por country_norm + year
+```
+
+Frase:
+
+```text
+O principal desafio do join foi compatibilizar granularidades diferentes. A temperatura precisava chegar no mesmo nivel do CO2: pais e ano.
+```
 
 ### Pearson
 
-- Coeficiente entre -1 e 1.
-- Perto de 1: relacao positiva forte.
-- Perto de 0: relacao fraca.
-- Perto de -1: relacao negativa forte.
-- No projeto, Q6 deu `0.0797`, entao a correlacao no recorte usado ficou fraca.
-- Defesa:
-  - Isso nao invalida o trabalho, porque o requisito tecnico era fazer join e correlacao estatistica. CO2 anual absoluto por pais nao isola populacao, economia, latitude, CO2 acumulado nem causalidade climatica.
+```text
+perto de 1: relacao positiva forte
+perto de 0: relacao fraca
+perto de -1: relacao negativa forte
+```
+
+No projeto:
+
+```text
+Q4: 0.4220, positiva moderada
+Q6: 0.0797, fraca
+```
 
 ### Window Function
 
-- Window function calcula uma linha olhando outras linhas relacionadas.
-- Na Q7, usamos `lag()` para olhar a decada anterior do mesmo pais.
-- Sem window, seria mais dificil comparar decada atual e anterior mantendo o contexto por pais.
-- Frase pronta:
-  - A window partitiona por pais e ordena por decada. Assim cada pais compara sua propria evolucao historica.
+```text
+Window.partitionBy("Country").orderBy("decade")
+lag()
+```
+
+Frase:
+
+```text
+A window separa a historia de cada pais e compara cada decada com a anterior dentro do mesmo pais.
+```
 
 ### MLlib
 
-- MLlib e a biblioteca de machine learning do Spark.
-- Na Q8 usamos `LinearRegression`.
-- `VectorAssembler` transforma `year` em vetor de features.
-- Label: `avg_temperature`.
-- O modelo aprende uma tendencia simples ano -> temperatura.
-- Defesa:
-  - E uma regressao linear simples para demonstrar MLlib, nao uma previsao climatica profissional.
+```text
+VectorAssembler
+LinearRegression
+feature = year
+label = avg_temperature
+```
 
-## Q5 - Qualidade de dados
+Defesa:
 
-- Pergunta: identificar registros onde a incerteza da medicao passa de 10% da media historica.
-- Logica:
-  - calcular media historica absoluta por cidade;
-  - limite = 10% dessa media;
-  - marcar `high_uncertainty` quando `AverageTemperatureUncertainty` passa do limite;
-  - contar true/false.
-- Spark/codigo:
-  - limpeza: `clean_city_temperatures()`;
-  - resumo: `high_uncertainty_summary(city_clean)`;
-  - usa `groupBy("high_uncertainty")` e `count()`.
-- Resultado:
-  - Alta incerteza: `1.608.419` registros.
-  - Confiaveis: `6.626.663` registros.
-- Fala pronta:
-  - Essa pergunta avalia qualidade dos dados. Em vez de assumir que toda medicao e igualmente confiavel, criamos uma regra objetiva de incerteza baseada na media historica da cidade.
+```text
+E uma regressao linear simples para demonstrar MLlib no Spark. Nao e um modelo climatico profissional.
+```
 
-## Q6 - CO2 vs aquecimento
+## Q5: qualidade dos dados
 
-- Pergunta: existe correlacao entre aumento de CO2 e aumento de temperatura por pais nos ultimos 50 anos?
-- Logica:
-  - temperatura limpa -> media anual por pais;
-  - CO2 limpo -> pais/ano;
-  - remover agregados como `World`, `Asia`, `Europe`;
-  - fazer join por `country_norm + year`;
-  - pegar primeiro e ultimo ano disponivel por pais;
-  - calcular `co2_delta` e `temperature_delta`;
-  - aplicar Pearson.
-- Spark/codigo:
-  - `annual_country_temperatures()`;
-  - `clean_co2()`;
-  - `join_temperature_co2()`;
-  - `co2_temperature_correlation()`;
-  - usa `join`, `Window.partitionBy("Country")`, `first`, `last`, `corr`.
-- Resultado:
-  - Pearson = `0.0797`.
-- Fala pronta:
-  - A correlacao ficou fraca nesse recorte. Isso e esperado porque emissoes anuais absolutas por pais misturam tamanho economico, populacao e geografia. O ponto tecnico foi demonstrar o join entre duas bases e a correlacao no Spark.
+- Funcoes: `clean_city_temperatures`, `high_uncertainty_summary`.
+- Regra: `AverageTemperatureUncertainty > 0.10 * abs(media_historica_da_cidade)`.
+- Resultado: alta incerteza = 1.608.419; confiaveis = 6.626.663.
 
-## Q7 - Ranking de aceleracao termica
+Defesa:
 
-- Pergunta: quais paises tiveram maior aceleracao de aquecimento na ultima decada em comparacao com a anterior?
-- Logica:
-  - temperatura anual por pais;
-  - agregar por decada;
-  - manter decadas completas;
-  - usar `lag()` para pegar temperatura da decada anterior;
-  - calcular delta e aceleracao;
-  - ordenar top 10.
-- Spark/codigo:
-  - `decade_country_temperatures(annual_country)`;
-  - `acceleration_ranking(..., complete_decades_only=True)`;
-  - usa `Window.partitionBy("Country").orderBy("decade")` e `lag()`.
-- Resultado:
-  - Top: Azerbaijan, Kazakhstan, Uzbekistan, Tajikistan, Afghanistan.
-- Defesa:
-  - A decada de 2010 e parcial porque a base termina por volta de 2013. Por isso usamos a ultima decada completa, 2000-2009.
+```text
+A regra nao apaga os dados. Ela cria uma marcacao de qualidade para saber quais registros sao menos confiaveis.
+```
 
-## Q8 - Previsao com MLlib
+Se o professor pedir para mudar percentual:
 
-- Pergunta: prever a temperatura dos proximos 5 anos para uma cidade/pais usando historico dos ultimos 20 anos.
-- Logica:
-  - temperatura anual por cidade/pais;
-  - filtrar cidade e pais;
-  - pegar ultimos 20 anos;
-  - treinar regressao linear simples;
-  - prever 5 anos apos o ultimo ano disponivel.
-- Spark/codigo:
-  - `forecast_temperature(annual_city, city, country)`;
-  - `VectorAssembler(inputCols=["year"], outputCol="features")`;
-  - `LinearRegression(featuresCol="features", labelCol="avg_temperature")`.
-- Resultado para Sao Paulo:
-  - 2014: `20.5780`;
-  - 2015: `20.5762`;
-  - 2016: `20.5745`;
-  - 2017: `20.5727`;
-  - 2018: `20.5710`.
-- Defesa:
-  - A base termina antes dos anos atuais. Por isso os anos previstos sao os 5 anos depois do ultimo ano disponivel para Sao Paulo.
+```text
+No notebook, alteramos UNCERTAINTY_RATIO. Se aumentar, menos registros entram como alta incerteza. Se diminuir, mais registros entram.
+```
 
-## Perguntas provaveis do professor
+## Q6: CO2 vs aquecimento
 
-**Por que remover World/Asia/Europe da OWID?**  
-Porque sao agregados, nao paises. Se entrassem no join, distorceriam Pearson e rankings.
+- Funcoes: `annual_country_temperatures`, `clean_co2`, `join_temperature_co2`, `co2_temperature_correlation`.
+- Join: `country_norm + year`.
+- Remove agregados: `World`, `Asia`, `Europe`.
+- Calcula `co2_delta` e `temperature_delta`.
+- Resultado: Pearson = 0.0797.
+
+Defesa:
+
+```text
+A correlacao ficou fraca nesse recorte. Isso nao invalida o trabalho, porque o requisito tecnico era fazer join e correlacao estatistica. CO2 anual absoluto por pais mistura economia, populacao, latitude, geografia e matriz energetica.
+```
+
+## Q7: ranking de aceleracao termica
+
+- Funcoes: `decade_country_temperatures`, `acceleration_ranking`.
+- Usa `lag()` para comparar decada atual com anterior.
+- Mantem decadas completas.
+- Top: Azerbaijan, Kazakhstan, Uzbekistan, Tajikistan, Afghanistan.
+
+Defesa:
+
+```text
+Usamos 2000-2009 como ultima decada completa porque a base termina por volta de 2013. Comparar 2010-2013 com uma decada cheia seria injusto.
+```
+
+Aviso importante:
+
+```text
+WindowExec: No Partition Defined for Window operation
+```
+
+Como explicar:
+
+```text
+Quando uma window nao tem partitionBy, o Spark pode concentrar dados em uma unica particao. Isso reduz paralelismo e ajuda a explicar por que mais workers podem nao reduzir tempo.
+```
+
+## Q8: previsao com MLlib
+
+Cidade final:
+
+```text
+Rio De Janeiro, Brazil
+```
+
+- Funcao: `forecast_temperature`.
+- Usa ultimos 20 anos disponiveis.
+- `VectorAssembler` transforma `year` em vetor.
+- `LinearRegression` treina `year -> avg_temperature`.
+- Preve 5 anos depois do ultimo ano da base.
+
+Resultado:
+
+```text
+2014: 20.5780
+2015: 20.5762
+2016: 20.5745
+2017: 20.5727
+2018: 20.5710
+```
+
+Defesa:
+
+```text
+A base termina antes dos anos atuais. Por isso a previsao e para os 5 anos apos o ultimo ano disponivel, nao necessariamente para 2026 em diante.
+```
+
+Grafico:
+
+```text
+Os pontos historicos nao sao conectados. O grafico mostra pontos historicos, linha de regressao e linha de previsao.
+```
+
+## Performance
+
+Cache:
+
+| Caso | Tempo |
+|---|---:|
+| Q1-Q8 com cache | 20.3530s |
+| Q1-Q8 sem cache | 118.4348s |
+| Ganho | 5.82x |
+
+Benchmark:
+
+| Modo | Wall | Spark | Overhead |
+|---|---:|---:|---:|
+| local-compose | 158s | 35.4613s | 122.5387s |
+| lan-cluster | 188s | 43.8593s | 144.1407s |
+
+Frase:
+
+```text
+O cluster distribuiu, mas nao acelerou nessa carga. O cache foi o maior ganho pratico medido.
+```
+
+## Perguntas provaveis
+
+**Por que remover World, Asia e Europe da OWID?**  
+Porque sao agregados, nao paises. Eles distorceriam analise por pais.
 
 **Por que Pearson baixo nao invalida Q6?**  
-Porque o requisito era fazer join e correlacao estatistica. O resultado baixo e uma interpretacao valida do recorte escolhido.
+Porque o resultado baixo e uma conclusao valida do recorte. O requisito era fazer join e correlacao, nao provar causalidade climatica.
 
-**Por que usar CO2 absoluto e nao per capita?**  
-Porque o enunciado pedia emissoes de CO2 de um pais. A base tambem tem `co2_per_capita`, mas usamos `co2` anual absoluto para manter a regra direta.
+**Por que usar decadas completas na Q7?**  
+Para nao comparar 2010-2013 com uma decada cheia.
 
 **Por que usar regressao linear simples?**  
-Porque o requisito pedia regressao linear simples com MLlib. Modelos climaticos reais seriam muito mais complexos.
+Porque o requisito pedia regressao linear simples com MLlib.
 
-**Por que usar window na Q7?**  
-Porque precisamos comparar cada pais com sua propria decada anterior. `lag()` resolve exatamente esse caso.
+**Por que Rio de Janeiro preve 2014-2018?**  
+Porque a base historica termina antes dos anos atuais nesse recorte.
+
+**Por que mais workers podem nao acelerar?**  
+Porque overhead, shuffle, rede, driver, coalesce(1), dados pequenos ou window sem partitionBy podem limitar o paralelismo.
 
 ## Frase final Gabriel
 
-- Minha parte mostra a integracao e as tecnicas avancadas: qualidade de dados, join entre bases diferentes, Pearson, window functions e MLlib. O resultado nao tenta provar causalidade climatica completa; ele demonstra um pipeline Spark defensavel para responder as perguntas propostas.
+```text
+Minha parte mostra as tecnicas analiticas mais fortes do projeto: qualidade dos dados, join entre bases diferentes, Pearson, window functions e MLlib. Os resultados sao interpretados com cuidado: Q6 nao prova causalidade, Q7 usa decadas completas e Q8 e uma regressao simples para demonstrar MLlib dentro do pipeline Spark.
+```

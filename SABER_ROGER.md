@@ -1,19 +1,66 @@
 # Saber Roger
 
-Responsavel por arquitetura, temperatura, cache e Q1-Q4.
+Responsavel por abertura, arquitetura, Docker, Spark UI, pipeline de temperatura, cache, Q1-Q4, benchmark e defesa de distribuicao.
 
-## Visao perfeita para explicar na hora
+## Estado final da entrega
 
-### Docker + Spark
-
-- Ideia central:
+Material principal de avaliacao:
 
 ```text
-Docker = cria os computadores/processos isolados
-Spark = distribui o processamento entre eles
+relatorio_latex/relatorio.pdf
 ```
 
-- No projeto, o Docker Compose sobe:
+Material executavel:
+
+```text
+notebooks/apresentacao_spark_clima.ipynb
+notebooks/apresentacao_spark_clima_com_outputs.ipynb
+```
+
+Entrega zipada:
+
+```text
+entrega_spark_sd_uel.zip
+```
+
+O notebook limpo nao tem outputs. O notebook `com_outputs` foi executado com:
+
+```text
+DATA_MODE=raw
+SPARK_MASTER=local[2]
+tempo: 337.14s
+```
+
+Commits finais:
+
+```text
+612cc63 docs: add final report and notebooks
+f46f8fd chore: add final delivery zip
+```
+
+## Abertura
+
+```text
+Este e o trabalho proposto pelo professor. O objetivo foi construir um pipeline Spark real para analisar dados climaticos e CO2, responder as perguntas pedidas, mostrar Docker, validar dois PCs pela Spark UI e discutir desempenho com cache, workers e overhead.
+```
+
+Frase curta:
+
+```text
+O PDF e o material principal de avaliacao. O notebook mostra o mesmo fluxo rodando passo a passo.
+```
+
+## Arquitetura
+
+| Componente | Papel |
+|---|---|
+| Driver | Submete o job, cria a SparkSession e coordena actions |
+| Master | Registra workers e agenda recursos |
+| Worker | Oferece CPU e memoria |
+| Executor | Roda tasks nos workers |
+| Spark UI | Mostra workers, executors, jobs, stages e tasks |
+
+Docker local:
 
 ```text
 spark-master
@@ -22,507 +69,201 @@ spark-worker-2
 spark-app
 ```
 
-- `spark-master`: coordena o cluster.
-- `spark-worker-1` e `spark-worker-2`: executam tarefas.
-- `spark-app`: roda o `spark-submit`, que envia o `main.py` para o cluster.
-
-### O que acontece quando roda `scripts/run_demo.sh`
+Frase pronta:
 
 ```text
-1. cria output/
-2. sobe master + workers com docker compose
-3. roda spark-submit
-4. Spark executa src/climate_spark/main.py
-5. main.py le dados sample
-6. limpa os dados
-7. responde Q1-Q8
-8. salva CSVs em output/results/
-9. gera graficos em output/plots/
+Docker cria o ambiente isolado. Spark e quem distribui o processamento. No Compose local, simulamos um cluster com master, workers e app em containers separados.
 ```
 
-### Frase pronta sobre Docker + Spark
-
-- O Docker garante o ambiente com Spark configurado.
-- O Spark faz o processamento distribuido.
-- O Docker Compose simula o cluster local, separando master, workers e aplicacao em containers.
-
-### Como falar de qualquer pergunta
-
-Use sempre este modelo:
+Dois PCs:
 
 ```text
-A pergunta pedia X.
-A gente transformou os dados para Y.
-No Spark usamos Z.
-O resultado foi W.
+PC1: master Spark, worker local e driver
+PC2: worker remoto conectado ao master do PC1
+URL: spark://<IP_DO_PC1>:7077
+UI: http://<IP_DO_PC1>:8080
 ```
 
-### Q1 - Media por decada
+Ponto essencial:
 
-- Pedia: evolucao da temperatura media global por decada.
-- Logica: media anual global -> media por decada -> media movel.
-- Spark: `groupBy`, `avg`, Window.
+```text
+O projeto nao usa HDFS. No modo raw, os dados precisam estar replicados nos dois PCs em /app/data/raw. O processamento e distribuido em particoes e tasks, mas os arquivos precisam existir localmente para os executors lerem.
+```
+
+## Onde esta a divisao
+
+A divisao e interna do Spark, nas particoes dos DataFrames.
+
+| Operacao | Como divide |
+|---|---|
+| `spark.read.csv` | Cria particoes |
+| `repartition(8, "Country")` | Forca particoes por pais |
+| `groupBy` | Redistribui por chave |
+| `join` | Coloca chaves iguais juntas |
+| `Window.partitionBy` | Calcula janelas por grupo |
+| `cache` | Mantem particoes nos executors |
+| `count`, `show`, `write` | Disparam jobs, stages e tasks |
+
+Frase pronta:
+
+```text
+DataFrame e uma tabela distribuida. Transformacoes montam o plano. Actions disparam execucao. O Spark quebra o plano em jobs, stages e tasks. Cada task processa uma particao em um executor.
+```
+
+## O que mostrar na Spark UI
+
+1. `Workers`: quantos workers estao vivos.
+2. `Alive Workers`: deve mostrar 2 no modo 2 PCs.
+3. `Total Cores` e `Total Memory`: recursos somados.
+4. `Running Applications`: aplicacao `climate-spark-analysis`.
+5. Aba da aplicacao: executors, jobs, stages e tasks.
+6. Stages com shuffle: custo de redistribuicao.
+
+Se perguntarem se worker vivo prova processamento:
+
+```text
+Worker vivo prova que o cluster aceitou a maquina. Para provar processamento, olhamos executors, tasks, hosts e stages durante o job.
+```
+
+## Fluxo do pipeline
+
+```text
+ler CSV
+limpar temperatura
+limpar CO2
+criar year, month, decade e country_norm
+agregar temperatura por cidade, pais, ano e decada
+cruzar temperatura e CO2 por country_norm + year
+responder Q1-Q8
+gerar CSVs, Parquet, graficos e notebook com outputs
+```
+
+## Q1 a Q4
+
+### Q1: media global por decada
+
 - Funcao: `global_decade_trend`.
-- Resultado: decadas recentes sobem; 1980, 1990, 2000 e 2010 aumentam.
+- Logica: media anual global, depois media por decada, depois media movel.
+- Spark: `groupBy`, `avg`, `Window`.
+- Resultado: 1980 = 17.9578, 1990 = 18.2497, 2000 = 18.5268, 2010 = 18.6335.
 
-### Q2 - Anos mais quentes por continente
-
-- Pedia: anos mais quentes por continente.
-- Logica: pais -> continente, media por continente/ano, ranking.
-- Spark: `groupBy`, `avg`, `row_number`, `Window.partitionBy`.
-- Funcao: `hottest_years_by_continent`.
-- Defesa: dataset nao tinha continente, entao usamos mapeamento pais -> continente.
-
-### Q3 - Cidades em risco
-
-- Pedia: cidades com maior instabilidade.
-- Logica: instabilidade = desvio padrao da temperatura.
-- Spark: `stddev_pop`, `groupBy`, `orderBy`.
-- Funcao: `riskiest_cities`.
-- Defesa: cidades frias aparecem porque tem grande variacao entre inverno e verao.
-
-### Q4 - Correlacao tropical minima/maxima
-
-- Pedia: correlacao entre minima e maxima em zonas tropicais.
-- Problema: dataset por cidade nao tem Tmin/Tmax reais.
-- Logica: proxy = menor media mensal do ano e maior media mensal do ano.
-- Spark: filtro por latitude tropical, `min`, `max`, `corr`.
-- Funcao: `tropical_min_max_correlation_df`.
-- Resultado: Pearson aproximadamente `0.4220`.
-
-### Q5 - Qualidade por incerteza
-
-- Pedia: qualidade de dados por incerteza.
-- Logica: incerteza > 10% da media historica da cidade.
-- Spark: cria `high_uncertainty`, depois `groupBy` e `count`.
-- Funcao: `high_uncertainty_summary`.
-- Resultado: alta incerteza `1.608.419`; confiaveis `6.626.663`.
-
-### Q6 - CO2 vs temperatura
-
-- Pedia: correlacao CO2 vs temperatura.
-- Problema: temperatura e cidade/mes; CO2 e pais/ano.
-- Logica: agregar temperatura por pais/ano, limpar CO2, fazer join, calcular deltas e Pearson.
-- Spark: `groupBy`, `join`, Window, `corr`.
-- Funcoes: `join_temperature_co2`, `co2_temperature_correlation`.
-- Resultado: Pearson `0.0797`, fraco.
-- Defesa: nao prova causalidade climatica; demonstra join entre bases e correlacao estatistica pedida.
-
-### Q7 - Aceleracao termica
-
-- Pedia: ranking de aceleracao termica.
-- Logica: comparar decada atual com decada anterior por pais.
-- Spark: Window Function com `lag`.
-- Funcoes: `decade_country_temperatures`, `acceleration_ranking`.
-- Resultado: topo inclui Azerbaijan, Kazakhstan, Uzbekistan, Tajikistan, Afghanistan.
-- Defesa: usamos ultima decada completa, porque 2010 estava parcial.
-
-### Q8 - Previsao com MLlib
-
-- Pedia: previsao com MLlib.
-- Logica: usar ultimos 20 anos de uma cidade/pais e prever proximos 5.
-- Spark: `VectorAssembler` + `LinearRegression`.
-- Funcao: `forecast_temperature`.
-- Resultado: para Sao Paulo, preve 2014 a 2018.
-- Defesa: regressao linear simples para demonstrar MLlib, nao modelo climatico completo.
-
-### Frase final forte
-
-- O trabalho inteiro segue o mesmo padrao: limpar dados, padronizar chaves, agregar na granularidade correta, aplicar funcao Spark adequada e salvar resultado.
-- A parte distribuida aparece porque essas operacoes rodam como jobs, stages e tasks nos workers do Spark.
-
-## Plano da apresentacao - 30 minutos
-
-### Divisao recomendada
-
-| Tempo | Quem | Tema | O que mostrar/falar |
-|---:|---|---|---|
-| 0:00-2:00 | Rodrigo | Abertura | Objetivo do projeto, bases usadas e ideia de pipeline ETL com Spark. |
-| 2:00-6:00 | Rodrigo | Arquitetura | Docker Compose, master, workers, app, driver/executors, Spark UI. |
-| 6:00-10:00 | Rodrigo | Rodar em multiplos PCs | PC1 master, PC2 worker, IP, portas, dados nos dois PCs, Spark UI mostrando worker. |
-| 10:00-14:00 | Rodrigo | Limpeza e pipeline | CSV -> DataFrame -> limpeza -> agregacoes -> join -> resultados. |
-| 14:00-18:00 | Rodrigo | Q1-Q4 | Temperatura, continentes, desvio padrao, proxy tropical e Pearson. |
-| 18:00-24:00 | Gabriel | Q5-Q8 | Qualidade, join CO2, Pearson, window functions, MLlib. |
-| 24:00-27:00 | Gabriel | Resultados e limitacoes | Resultados reais, correlacao fraca, decada completa, previsao simples. |
-| 27:00-30:00 | Ambos | Fechamento | Cache vs sem cache, Parquet, graficos, perguntas. |
-
-### Se Gabriel faltar
-
-- Rodrigo faz 0:00-18:00 normalmente.
-- Em 18:00-26:00, Rodrigo apresenta Q5-Q8 usando o resumo do Gabriel.
-- Em 26:00-30:00, Rodrigo mostra resultados, cache, Parquet e responde perguntas.
-
-### Ordem segura para a demo em multiplos computadores
-
-1. Antes da apresentacao, testar se os dois PCs estao no mesmo Wi-Fi.
-2. No PC1, abrir terminal em `spark/`.
-3. No PC1:
-
-```bash
-scripts/setup_data.sh
-scripts/run_distributed_master_pc1.sh
-```
-
-4. Anotar o IP mostrado, exemplo `192.168.0.10`.
-5. No PC2, abrir terminal na pasta `spark/` e rodar:
-
-```bash
-scripts/run_distributed_worker_pc2.sh 192.168.0.10
-```
-
-6. No PC1, abrir a Spark UI:
+Defesa:
 
 ```text
-http://192.168.0.10:8080
+Agregamos por ano antes da decada para evitar misturar diretamente todos os meses. A media movel suaviza ruido.
 ```
 
-7. Mostrar que o worker do PC2 apareceu registrado.
-8. No PC1, submeter job pequeno para demonstrar ao vivo:
+### Q2: anos mais quentes por continente
 
-```bash
-scripts/run_distributed_submit_pc1.sh 192.168.0.10 sample
+- Funcao: `hottest_years_by_continent`.
+- Logica: mapear pais para continente, agregar por continente e ano, ranquear.
+- Spark: `groupBy`, `avg`, `row_number`, `Window.partitionBy`.
+- Exemplos: Africa 2010, Asia 2013, Europe 2007, North America 2013, Oceania 1998, South America 2002.
+
+### Q3: cidades em risco
+
+- Funcao: `riskiest_cities`.
+- Logica: risco = maior desvio padrao de temperatura.
+- Spark: `stddev_pop`, `groupBy`, `orderBy`.
+- Top: Heihe, Blagoveshchensk, Kyzyl, Hailar, Yakeshi.
+
+Defesa:
+
+```text
+O ranking mede instabilidade, nao aquecimento recente. Cidades frias continentais aparecem porque variam muito entre inverno e verao.
 ```
 
-9. Mostrar `output/results/`, `output/plots/` e a Spark UI com aplicacao/jobs.
-10. Se der problema de rede, usar fallback local:
+### Q4: tropical minima e maxima
+
+- Funcao: `tropical_min_max_correlation_df`.
+- Problema: a base nao tem Tmin e Tmax reais.
+- Proxy: menor media mensal anual e maior media mensal anual em latitudes entre -23.5 e 23.5.
+- Resultado: Pearson = 0.4220.
+
+Defesa:
+
+```text
+Nao inventamos coluna inexistente. Usamos uma aproximacao defensavel com a base disponivel. Isso suaviza extremos diarios, mas responde com coerencia.
+```
+
+## Performance e cache
+
+| Caso | Tempo |
+|---|---:|
+| Q1-Q8 com cache | 20.3530s |
+| Q1-Q8 sem cache | 118.4348s |
+| Ganho aproximado | 5.82x |
+
+Frase pronta:
+
+```text
+Nesta carga, cache foi mais importante que adicionar outro computador, porque varias perguntas reutilizam as mesmas bases limpas e joins.
+```
+
+## Benchmark local vs LAN
+
+| Modo | Workers | Wall | Spark | Overhead |
+|---|---:|---:|---:|---:|
+| local-compose | 2 no PC1 | 158s | 35.4613s | 122.5387s |
+| lan-cluster | 1 no PC1 + 1 no PC2 | 188s | 43.8593s | 144.1407s |
+
+```text
+speedup_lan_vs_local = 158 / 188 = 0.84
+eficiencia_lan = 0.84 / 2 = 0.42
+diferenca_de_overhead = 21.6020s
+```
+
+Defesa:
+
+```text
+O processamento foi distribuido, mas nao foi mais rapido nesta rodada. A Spark UI mostrou dois workers vivos e executors em hosts diferentes. O custo de rede, Docker, submit, shuffle, escrita e trechos seriais superou o ganho de CPU.
+```
+
+## Por que mais workers podem nao acelerar
+
+```text
+Mais workers so ajudam se houver particoes suficientes, CPU ocupada e overhead menor que o ganho. Se o gargalo for shuffle, disco, rede, driver, coalesce(1), graficos no driver ou Window sem partitionBy, o tempo pode ficar parecido.
+```
+
+Aviso visto:
+
+```text
+WindowExec: No Partition Defined for Window operation
+```
+
+## Comandos
 
 ```bash
 scripts/run_demo.sh
-```
-
-### Frase para explicar 2 PCs
-
-- No modo de dois computadores, o PC1 roda o master e o driver do job. O PC2 roda um worker conectado ao master pelo IP local. Quando o job e submetido, o Spark master distribui tarefas para os executors nos workers. Os dois PCs precisam enxergar os mesmos arquivos porque os executors leem dados em `/app/data`.
-
-### O que mostrar na Spark UI
-
-- Master URL: `spark://<IP_DO_PC1>:7077`.
-- Workers registrados.
-- Cores e memoria dos workers.
-- Aplicacao `climate-spark-analysis`.
-- Jobs, stages e tasks.
-- Isso comprova que nao foi so um script Python comum; houve execucao no cluster Spark.
-
-### Roteiro de fala de abertura
-
-- Professor, o projeto foi montado como um pipeline de engenharia de dados com Apache Spark. A entrada sao dados historicos de temperatura por cidade e dados de CO2 por pais. O Spark le esses CSVs como DataFrames, limpa e padroniza os dados, executa agregacoes, join, correlacoes, ranking com window functions e previsao com MLlib. A execucao pode rodar localmente com Docker Compose ou distribuida em dois computadores no mesmo Wi-Fi.
-
-### Roteiro de fechamento
-
-- O resultado principal e que conseguimos responder as 8 perguntas usando o mesmo pipeline distribuido. O Spark foi importante porque permite dividir os dados em particoes, executar tasks nos workers, reaproveitar DataFrames com cache e registrar tudo na Spark UI. Como artefatos, temos CSVs de resposta, graficos e uma amostra Parquet do dataset final apos limpeza e join.
-
-## Guia de consulta rapida
-
-### O que dizer sobre sua parte
-
-- Eu fiquei mais na parte de Python, logica basica do Spark, arquitetura local, leitura dos CSVs, limpeza da temperatura, cache e perguntas Q1-Q4.
-- O Gabriel ficou mais com CO2, join, qualidade de dados, window functions, MLlib e Q5-Q8.
-- Se o Gabriel nao conseguir apresentar, eu explico a ideia geral da parte dele, principalmente o fluxo e as decisoes tecnicas.
-- Se perguntarem algo muito especifico de formula, responda pela logica: limpar dados, padronizar chave, agregar, aplicar funcao Spark e salvar resultado.
-
-### Como rodar a demo rapida
-
-- Comando principal:
-
-```bash
-cd /home/roger/uel/sistemas-distribuidos/spark
-scripts/run_demo.sh
-```
-
-- Esse modo usa `data/sample/`, entao e rapido e seguro para mostrar na frente do professor.
-- Ele sobe um cluster Spark local via Docker Compose.
-- No fim, olhar:
-  - Spark UI: `http://localhost:18080`
-  - resultados: `output/results/`
-  - graficos: `output/plots/`
-- Para parar tudo depois:
-
-```bash
+scripts/run_all.sh
+scripts/run_distributed_master_pc1.sh
+scripts/run_distributed_worker_pc2.sh <IP_DO_PC1>
+scripts/run_distributed_submit_pc1.sh <IP_DO_PC1> sample
+scripts/run_distributed_submit_pc1.sh <IP_DO_PC1> raw
+scripts/benchmark_cluster_modes.sh local-compose raw
+scripts/benchmark_cluster_modes.sh lan-cluster <IP_DO_PC1> raw
 scripts/stop_distributed.sh
 ```
 
-### Como o Docker entra no projeto
+## Perguntas provaveis
 
-- Docker empacota o ambiente para nao depender do Spark instalado direto na maquina.
-- O `Dockerfile` cria a imagem `climate-spark:local` a partir de `apache/spark-py`.
-- O `docker-compose.yml` sobe os servicos:
-  - `spark-master`: coordena o cluster.
-  - `spark-worker-1`: executa tarefas.
-  - `spark-worker-2`: executa tarefas.
-  - `spark-app`: container usado para submeter o job com `spark-submit`.
-- A pasta do projeto e montada dentro dos containers como volume em `/app`.
-- Por isso o container enxerga:
-  - codigo em `/app/src`;
-  - dados em `/app/data`;
-  - saidas em `/app/output`.
-- Portas importantes no modo local:
-  - `7077`: porta do Spark master, usada pelo `spark-submit`.
-  - `18080`: Spark UI do master no navegador.
-  - `8081` e `8082`: UIs dos workers.
+**Docker distribui?**  
+Nao. Docker cria containers. Spark distribui processamento.
 
-### O que acontece quando roda `run_demo.sh`
+**Onde os dados sao distribuidos?**  
+Os arquivos raw sao replicados nos PCs. O processamento e distribuido em particoes e tasks.
 
-- Cria a pasta `output/` e libera permissao de escrita.
-- Executa `docker compose up -d --build spark-master spark-worker-1 spark-worker-2`.
-- Isso constroi a imagem e sobe 1 master + 2 workers.
-- Depois roda `spark-submit` dentro do container `spark-app`.
-- O comando envia `src/climate_spark/main.py` para o master `spark://spark-master:7077`.
-- O driver monta o plano do Spark.
-- O master aloca recursos nos workers.
-- Os executors processam as particoes.
-- O resultado volta para `output/results/` e os graficos para `output/plots/`.
+**O que prova a distribuicao?**  
+Spark UI, workers vivos, executors, stages, tasks e hosts.
 
-### Frase pronta sobre Docker + Spark
+**Por que o cluster LAN foi mais lento?**  
+Porque overhead de rede, Docker, submit, shuffle e partes seriais superou o ganho.
 
-- O Docker nao e o processamento distribuido em si. Ele so cria o ambiente isolado.
-- O Spark e quem distribui o processamento entre master, workers, executors, jobs, stages e tasks.
-- No nosso caso, o Docker Compose simula um cluster local com containers separados.
+**Por que cache ajudou tanto?**  
+Porque evita recalcular limpeza, agregacoes e joins usados por varias perguntas.
 
-### Fluxo geral do pipeline
+## Fechamento
 
-- Entrada:
-  - `GlobalLandTemperaturesByCity.csv`: temperatura por cidade e mes.
-  - `GlobalTemperatures.csv`: temperatura global auxiliar.
-  - `owid-co2-data.csv`: CO2 por pais e ano.
-- Processo:
-  - ler CSV com Spark DataFrame;
-  - limpar nulos e tipos;
-  - criar `year`, `month`, `decade`;
-  - limpar coordenadas;
-  - padronizar pais em `country_norm`;
-  - remover outliers;
-  - marcar alta incerteza;
-  - agregar por ano, decada, cidade, pais e continente;
-  - cruzar temperatura com CO2 por `country_norm + year`;
-  - aplicar correlacao, ranking e regressao linear.
-- Saida:
-  - CSVs pequenos em `output/results/`;
-  - graficos em `output/plots/`.
-
-### Frase pronta sobre ETL
-
-- O projeto e um pipeline ETL: extrai CSVs brutos, transforma com limpeza e agregacao no Spark, e carrega resultados em arquivos CSV e graficos.
-- A maior parte do trabalho e limpeza, porque bases reais vem com nulos, granularidades diferentes, nomes divergentes e registros pouco confiaveis.
-
-### Spark basico para responder
-
-- DataFrame: tabela distribuida com schema.
-- Transformacao: monta plano, nao executa ainda. Exemplos: `filter`, `select`, `withColumn`, `groupBy`, `join`.
-- Action: forca execucao. Exemplos: `count`, `collect`, `write`.
-- Lazy evaluation: Spark espera uma action para otimizar o plano inteiro antes de rodar.
-- Particao: pedaco do DataFrame.
-- Task: trabalho sobre uma particao.
-- Stage: fase do job.
-- Shuffle: redistribuicao de dados entre particoes, comum em `groupBy`, `join`, `orderBy` e window.
-- Cache: guarda DataFrames reutilizados para evitar recalcular limpeza e agregacoes.
-
-### Parte do Gabriel em resumo
-
-- Q5 qualidade: marca registros onde a incerteza passa de 10% da media historica absoluta da cidade.
-- Q6 CO2 + temperatura: agrega temperatura por pais/ano, limpa CO2 por pais/ano e faz join por `country_norm + year`. Depois calcula Pearson entre aumento de CO2 e aumento de temperatura.
-- Q7 aceleracao termica: usa window function com `lag()` para comparar a decada atual com a decada anterior por pais.
-- Q8 previsao: usa Spark MLlib com regressao linear simples. O ano vira feature e a temperatura vira label. O modelo preve os 5 anos seguintes.
-- Explicacao defensavel: a parte dele usa tecnicas mais avancadas do Spark, mas a logica geral segue o mesmo pipeline: limpar, agregar, cruzar, calcular e salvar.
-
-### Perguntas dificeis e respostas curtas
-
-- Por que Q4 usa proxy?
-  - A base por cidade nao tem Tmin/Tmax reais. Usamos menor e maior media mensal por cidade/ano em zonas tropicais como aproximacao defensavel.
-- Por que Q6 deu correlacao fraca?
-  - Porque CO2 anual absoluto por pais mistura tamanho economico, populacao, geografia e latitude. O objetivo tecnico era demonstrar join e Pearson no Spark.
-- Por que Q7 ignora a decada de 2010?
-  - Porque a base termina por volta de 2013, entao 2010 e parcial. Para comparar justo, usamos a ultima decada completa.
-- Por que cidades frias aparecem na Q3?
-  - Porque a metrica e desvio padrao. Cidades continentais frias tem grande variacao entre inverno e verao.
-- Por que remover World/Asia/Europe do CO2?
-  - Porque sao agregados, nao paises. Se entrassem, distorceriam analise por pais.
-
-## Perguntas do trabalho: resposta + logica + Spark/codigo
-
-### Q1 - Media movel de temperatura por decada
-
-- Pergunta: qual a evolucao da temperatura media anual global por decada?
-- Logica:
-  - pegar temperatura limpa;
-  - calcular media anual global por `year`;
-  - agrupar por `decade`;
-  - calcular media movel nas decadas.
-- Spark/codigo:
-  - funcao: `global_decade_trend(reliable_city)` em `analytics.py`;
-  - usa `groupBy("year", "decade")`, `avg("AverageTemperature")`, outro `groupBy("decade")` e window `rowsBetween(-2, 0)`.
-- Resultado para falar:
-  - ultimas decadas subiram: 1980 = 17.9578, 1990 = 18.2497, 2000 = 18.5268, 2010 = 18.6335.
-- Defesa curta:
-  - primeiro agregamos por ano para nao misturar diretamente todos os meses; depois a decada resume a tendencia.
-
-### Q2 - 10 anos mais quentes por continente
-
-- Pergunta: quais foram os anos mais quentes para cada continente nos ultimos 50 anos?
-- Logica:
-  - adicionar continente a partir do pais;
-  - filtrar ultimos 50 anos disponiveis;
-  - calcular media por `continent + year`;
-  - ranquear por continente.
-- Spark/codigo:
-  - funcoes: `with_continent()` e `hottest_years_by_continent(reliable_city)`;
-  - usa `groupBy("continent", "year")`, `avg`, `Window.partitionBy("continent")` e `row_number()`.
-- Resultado para falar:
-  - exemplos de primeiros: Africa 2010, Asia 2013, Europe 2007, North America 2013, South America 2002.
-- Defesa curta:
-  - como a base nao tem continente, criamos mapeamento pais -> continente.
-
-### Q3 - Cidades em risco / instabilidade climatica
-
-- Pergunta: quais cidades tiveram maior desvio padrao de temperatura no ultimo seculo?
-- Logica:
-  - filtrar ultimos 100 anos disponiveis;
-  - agrupar por cidade e pais;
-  - calcular desvio padrao populacional da temperatura;
-  - ordenar desc e pegar top.
-- Spark/codigo:
-  - funcao: `riskiest_cities(reliable_city)`;
-  - usa `filter(year >= max_year - 99)`, `groupBy("City", "Country")`, `stddev_pop`, `count`, `orderBy(desc)`.
-- Resultado para falar:
-  - topo: Heihe, Blagoveshchensk, Kyzyl, Hailar, Yakeshi.
-- Defesa curta:
-  - risco aqui foi definido pelo enunciado como instabilidade, entao usamos desvio padrao. Cidades frias continentais aparecem porque variam muito entre inverno e verao.
-
-### Q4 - Correlacao entre minima e maxima em zonas tropicais
-
-- Pergunta: existe correlacao entre aumento da temperatura minima e maxima em zonas tropicais?
-- Logica:
-  - base por cidade nao tem Tmin/Tmax reais;
-  - filtrar zonas tropicais por latitude entre -23.5 e 23.5;
-  - usar proxy anual: menor media mensal = minima aproximada, maior media mensal = maxima aproximada;
-  - calcular Pearson.
-- Spark/codigo:
-  - funcao: `tropical_min_max_correlation_df(reliable_city)`;
-  - usa `filter(latitude_value.between(-23.5, 23.5))`, `groupBy("City", "Country", "year")`, `min`, `max`, `corr`.
-- Resultado para falar:
-  - Pearson = 0.4220.
-- Defesa curta:
-  - nao inventamos coluna inexistente; usamos proxy baseada nas medias mensais disponiveis.
-
-### Q5 - Qualidade de dados por incerteza
-
-- Pergunta: identificar registros onde a incerteza passa de 10% da media historica.
-- Logica:
-  - durante limpeza, calcular media historica absoluta por cidade;
-  - criar limite = 10% dessa media;
-  - marcar `high_uncertainty` quando a incerteza passa do limite;
-  - contar confiaveis vs alta incerteza.
-- Spark/codigo:
-  - limpeza em `clean_city_temperatures()`;
-  - resumo em `high_uncertainty_summary(city_clean)`;
-  - usa `groupBy("high_uncertainty")` e `count()`.
-- Resultado para falar:
-  - alta incerteza: 1.608.419 registros;
-  - confiaveis: 6.626.663 registros.
-- Defesa curta:
-  - isso separa registros menos confiaveis sem apagar o dado bruto original.
-
-### Q6 - Correlacao CO2 vs aquecimento com join
-
-- Pergunta: existe correlacao Pearson entre aumento de CO2 e aumento de temperatura por pais nos ultimos 50 anos?
-- Logica:
-  - temperatura vem por cidade/mes;
-  - CO2 vem por pais/ano;
-  - primeiro agregamos temperatura para pais/ano;
-  - limpamos CO2 e removemos agregados como World/Asia/Europe;
-  - fazemos join por `country_norm + year`;
-  - para cada pais, calculamos delta de CO2 e delta de temperatura nos ultimos 50 anos;
-  - aplicamos Pearson entre esses deltas.
-- Spark/codigo:
-  - funcoes: `annual_country_temperatures()`, `clean_co2()`, `join_temperature_co2()`, `co2_temperature_correlation()`;
-  - usa `groupBy`, `join`, `Window.partitionBy("Country")`, `first`, `last`, `corr`.
-- Resultado para falar:
-  - Pearson = 0.0797, correlacao fraca.
-- Defesa curta:
-  - tecnicamente cumpre join + Pearson. Cientificamente, CO2 anual absoluto por pais mistura economia, populacao, latitude e geografia; nao e modelo causal climatico.
-
-### Q7 - Ranking de aceleracao termica com Window Functions
-
-- Pergunta: quais paises aqueceram mais rapido na ultima decada completa comparada com a anterior?
-- Logica:
-  - partir da temperatura anual por pais;
-  - agregar por pais e decada;
-  - ignorar decada parcial;
-  - usar `lag()` para pegar decada anterior;
-  - calcular delta de aquecimento e aceleracao;
-  - ordenar top 10.
-- Spark/codigo:
-  - funcoes: `decade_country_temperatures(annual_country)` e `acceleration_ranking(..., complete_decades_only=True)`;
-  - usa `withColumn("decade")`, `groupBy("Country", "decade")`, `Window.partitionBy("Country").orderBy("decade")`, `lag`, `orderBy(desc)`.
-- Resultado para falar:
-  - topo: Azerbaijan, Kazakhstan, Uzbekistan, Tajikistan, Afghanistan.
-- Defesa curta:
-  - usamos 2000-2009 como ultima decada completa porque 2010 estava parcial na base.
-
-### Q8 - Previsao com Spark MLlib
-
-- Pergunta: prever temperatura dos proximos 5 anos para cidade/pais usando ultimos 20 anos.
-- Logica:
-  - agregar temperatura anual por cidade/pais;
-  - filtrar cidade e pais escolhidos;
-  - usar ultimos 20 anos como treino;
-  - treinar regressao linear simples;
-  - prever 5 anos depois do ultimo ano disponivel.
-- Spark/codigo:
-  - funcao: `forecast_temperature(annual_city, args.city, args.country)`;
-  - usa `VectorAssembler(inputCols=["year"], outputCol="features")` e `LinearRegression(featuresCol="features", labelCol="avg_temperature")`.
-- Resultado para falar:
-  - para Sao Paulo/Brazil, previsoes 2014 a 2018: 20.5780, 20.5762, 20.5745, 20.5727, 20.5710.
-- Defesa curta:
-  - e uma regressao linear simples para demonstrar MLlib, nao uma previsao climatica robusta. Ela aprende tendencia historica de `year -> temperatura`.
-
-### Onde isso aparece no `main.py`
-
-- `main.py` cria os DataFrames base:
-  - `reliable_city`: temperatura limpa e confiavel;
-  - `annual_country`: temperatura anual por pais;
-  - `annual_city`: temperatura anual por cidade;
-  - `joined`: temperatura + CO2 por pais/ano.
-- Depois chama Q1 a Q8 e salva tudo com `write_result()` em `output/results/`.
-- Com cache ligado, materializa `reliable_city`, `annual_country`, `annual_city` e `joined` com `count()` para reaproveitar nas perguntas.
-
-## Flashcards
-
-**Qual e a arquitetura?**  
-Spark master coordena. Workers executam. Driver monta o plano e submete jobs. Executors rodam tasks nos workers.
-
-**Onde aparece distribuicao?**  
-Na Spark UI: workers registrados, executores, stages e tasks.
-
-**O que e lazy evaluation?**  
-`filter`, `select` e `groupBy` montam plano. Nada roda ate uma action, como `count`, `write` ou `collect`.
-
-**O que causa shuffle?**  
-`groupBy`, `join`, `orderBy` e window quando precisa reorganizar dados entre particoes.
-
-**Por que DataFrame e nao RDD puro?**  
-DataFrame tem otimizador Catalyst, schema, funcoes prontas e SQL-like API. Para este trabalho, fica mais limpo e rapido.
-
-**Como limpamos temperatura?**  
-Removemos nulos, convertemos data, criamos ano/mes/decada, convertemos coordenadas, removemos outliers fisicos e marcamos alta incerteza.
-
-**Qual regra de incerteza?**  
-`AverageTemperatureUncertainty > 10% * abs(media historica da cidade)`.
-
-**Por que cache ajuda?**  
-As perguntas reutilizam temperatura limpa e joins. Com cache, Spark nao recalcula tudo a cada pergunta.
-
-## Q1
-
-Media anual global primeiro, depois media por decada e media movel. Ultimas decadas mostram aumento: 1980 = 17.9578, 1990 = 18.2497, 2000 = 18.5268, 2010 = 18.6335.
-
-## Q2
-
-Mapeamos pais para continente e ranqueamos anos com `row_number`. Exemplos: Africa 2010, Asia 2013, Europa 2007.
-
-## Q3
-
-Risco = desvio padrao. Cidades frias continentais aparecem no topo porque variam muito entre inverno e verao.
-
-## Q4
-
-A base por cidade nao tem Tmin/Tmax reais. Usamos proxy tropical: menor e maior media mensal por cidade/ano entre latitudes -23.5 e 23.5. Pearson = 0.4220.
+```text
+O trabalho mostra um pipeline Spark completo: leitura de CSVs reais, limpeza, normalizacao, agregacoes, join entre temperatura e CO2, window functions, cache, MLlib, graficos, PDF, notebook executado, Docker local, dois PCs e analise de desempenho. A parte distribuida aparece porque as operacoes viram planos Spark, jobs, stages e tasks executadas nos workers.
+```
