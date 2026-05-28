@@ -16,7 +16,6 @@ PC1_IP=""
 RUN_LABEL="$MODE"
 
 if [ "$MODE" = "local-compose" ]; then
-  # scripts/run_all.sh usa docker compose para subir master e workers locais.
   DATA_MODE="${2:-raw}"
 elif [ "$MODE" = "lan-cluster" ]; then
   if [ $# -lt 2 ]; then
@@ -36,15 +35,25 @@ mkdir -p output/benchmark
 START_EPOCH="$(date +%s)"
 
 if [ "$MODE" = "local-compose" ]; then
-  # scripts/run_all.sh usa docker compose para subir master e workers locais.
   if [ "$DATA_MODE" = "raw" ]; then
-    scripts/run_all.sh
-  elif [ "$DATA_MODE" = "sample" ]; then
-    scripts/run_demo.sh
-  else
+    scripts/setup_data.sh
+  elif [ "$DATA_MODE" != "sample" ]; then
     echo "DATA_MODE invalido: $DATA_MODE"
     exit 1
   fi
+
+  mkdir -p output
+  chmod 777 output
+  docker compose up -d --build spark-master spark-worker-1 spark-worker-2
+  docker compose run --rm -e MPLCONFIGDIR=/tmp/matplotlib spark-app /opt/spark/bin/spark-submit \
+    --master spark://spark-master:7077 \
+    /app/src/climate_spark/main.py \
+    --mode "$DATA_MODE" \
+    --cache on \
+    --city "Rio De Janeiro" \
+    --country Brazil \
+    --master spark://spark-master:7077 \
+    --output /app/output
 fi
 
 if [ "$MODE" = "lan-cluster" ]; then

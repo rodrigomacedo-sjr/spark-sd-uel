@@ -240,7 +240,26 @@ SPARK_WORKER_INSTANCES
 
 ### Eficiencia
 
-A comparacao deve ser feita com o script `scripts/benchmark_cluster_modes.sh`, que grava `wall_seconds`, `spark_compute_seconds`, `overhead_seconds` e `network_orchestration_overhead`.
+A comparacao deve ser feita com o script `scripts/benchmark_cluster_modes.sh`, que grava `wall_seconds`, `spark_compute_seconds`, `overhead_seconds` e `network_orchestration_overhead`. Depois da correcao do benchmark, cada modo executa uma unica rodada com cache ligado, para que a comparacao seja justa.
+
+Resultado medido com base `raw`:
+
+| Modo | Workers | `wall_seconds` | `spark_compute_seconds` | `overhead_seconds` |
+|---|---:|---:|---:|---:|
+| `local-compose` | 2 no PC1 | 158 | 35.4613 | 122.5387 |
+| `lan-cluster` | 1 no PC1 + 1 no PC2 | 188 | 43.8593 | 144.1407 |
+
+Com esses valores:
+
+```text
+speedup_lan_vs_local = 158 / 188 = 0.84
+eficiencia_lan = 0.84 / 2 = 0.42
+diferenca_de_overhead = 144.1407 - 122.5387 = 21.6020s
+```
+
+A leitura correta e que o processamento foi distribuido, mas esta execucao LAN nao foi mais rapida. A Spark UI confirmou dois workers vivos e executores em hosts diferentes, mas o custo de rede, Docker, submit, shuffle e sincronizacao superou o ganho de usar o PC2.
+
+Durante a execucao apareceu o aviso `WindowExec: No Partition Defined for Window operation`. Isso significa que algumas janelas foram executadas sem `partitionBy`, fazendo o Spark mover dados para uma unica particao. Esse trecho reduz o paralelismo e explica por que aumentar workers pode nao reduzir tempo de forma linear.
 
 Para comparar N workers contra a base de 2 workers:
 
@@ -250,7 +269,7 @@ eficiencia = speedup / (N / 2)
 constante de rede aproximada = network_orchestration_overhead
 ```
 
-Se 3 ou 4 workers nao diminuirem o tempo, os motivos provaveis sao: dataset pequeno, poucas particoes, workers competindo pelo mesmo disco no mesmo PC, shuffle alto, escrita final serializada por `coalesce(1)` ou gargalo no driver.
+Se 3 ou 4 workers nao diminuirem o tempo, os motivos provaveis sao: dataset pequeno, poucas particoes, workers competindo pelo mesmo disco no mesmo PC, shuffle alto, escrita final serializada por `coalesce(1)`, janelas sem particionamento ou gargalo no driver.
 
 ## Limitacoes assumidas
 

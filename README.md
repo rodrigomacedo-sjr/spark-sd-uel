@@ -86,6 +86,17 @@ scripts/benchmark_cluster_modes.sh lan-cluster <IP_DO_PC1> raw
 
 O resultado fica em `output/benchmark/cluster_modes.csv`, com `wall_seconds`, `spark_compute_seconds`, `overhead_seconds` e `network_orchestration_overhead`. A analise completa de quando vale a pena usar cluster esta no notebook principal da apresentacao.
 
+Medicao real com base `raw`, cache ligado, 2 workers e arquivo Kaggle identico nos dois PCs:
+
+| Modo | Workers | Tempo total | Tempo Spark medido | Overhead aproximado | Leitura |
+|---|---:|---:|---:|---:|---|
+| `local-compose` | 2 no mesmo PC | 158s | 35.4613s | 122.5387s | Menor overhead, sem rede LAN entre PCs |
+| `lan-cluster` | 1 no PC1 + 1 no PC2 | 188s | 43.8593s | 144.1407s | Distribuiu processamento, mas pagou custo de rede/orquestracao |
+
+Nesta medicao, o cluster LAN ficou cerca de 30s mais lento que o Compose local. Isso nao invalida a distribuicao: a Spark UI mostrou dois workers vivos e executores em hosts diferentes. A conclusao correta e que cluster vale quando o ganho de CPU e memoria supera rede, shuffle, Docker, leitura/escrita e trechos seriais.
+
+Durante a execucao apareceu o aviso `WindowExec: No Partition Defined`. Isso indica que algumas operacoes de janela movem dados para uma unica particao, reduzindo o paralelismo e explicando por que mais workers nem sempre reduzem o tempo.
+
 
 ## Workers, recursos e eficiencia
 
